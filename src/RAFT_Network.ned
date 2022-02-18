@@ -28,6 +28,27 @@ simple Server
         inout gate[];
 }
 
+simple Client
+{
+    parameters:
+        int addr = default(-1);
+        volatile double sendIaTime @unit(s);
+        @display("i=device/pc2");
+    gates:
+        inout gate;
+}
+
+simple Cloud
+{
+    parameters:
+        @display("i=misc/cloud");
+        double propDelay @unit(s);
+    gates:
+        inout gate_s[];
+        inout gate_c[];
+}
+
+
 //
 // A generated network with full graph topology.
 //
@@ -35,6 +56,7 @@ network RAFT_Network
 {
     parameters:
         int servers_number = default(5);
+        int clients_number = default(2);
     types:
         channel Channel extends ned.DelayChannel
         {
@@ -46,9 +68,26 @@ network RAFT_Network
             gates:
                 gate[servers_number];
         }
+        client[clients_number]: Client {
+            gates:
+                gate;
+        }
+        cloud: Cloud {
+            gates:
+                gate_s[servers_number];
+                gate_c[clients_number];
+        }
     connections allowunconnected:
         for i=0..servers_number-2, for j=i+1..servers_number-1 {
             server[i].gate[j] <--> Channel <--> server[j].gate[i];
+        }
+
+        for i=0..servers_number-1 {
+            cloud.gate_s[i] <--> Channel <--> server[i].gate[i];
+        }
+
+        for i=0..clients_number-1 {
+            client[i].gate <--> Channel <--> cloud.gate_c[i];
         }
 
 
