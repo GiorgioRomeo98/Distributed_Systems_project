@@ -5,21 +5,19 @@
  *      Author: Giorgio Romeo, Daria Preda
  */
 
-struct log_entry
+#include "command.h"
+
+typedef struct _log_entry
 {
     int term;
-    struct command_t{
-            char var;
-            int value;
-            command_t(char _var, int _value): var(_var), value(_value) {}
-    } command;
+    command entry_command;
 
-    log_entry(int _term, char _var, int _value): term(_term), command(_var, _value) {}
+    _log_entry(int _term, char _var, int _value): term(_term), entry_command(_var, _value) {}
 
-};
+}log_entry;
 
 std::ostream& operator<<(std::ostream& os, const log_entry& log_elem)
 {
-    os << "term=" << log_elem.term << "; command: " << log_elem.command.var << " <-- " << log_elem.command.value; // no endl!
+    os << "term=" << log_elem.term << "; command: " << log_elem.entry_command.var << " <-- " << log_elem.entry_command.value; // no endl!
     return os;
 }

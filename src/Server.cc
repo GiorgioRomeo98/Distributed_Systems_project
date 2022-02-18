@@ -14,7 +14,7 @@
 using namespace omnetpp;
 
 /**
- * Derive the Node class from cSimpleModule.
+ * Derive the Server class from cSimpleModule.
  */
 class Server: public cSimpleModule
 {
