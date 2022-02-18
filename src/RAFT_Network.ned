@@ -19,9 +19,10 @@ package predaromeo_dsproject;
 
 import ned.DelayChannel;
 
-simple Node {
+simple Server
+{
     parameters:
-        @display("i=block/routing");
+        @display("i=device/server");
     gates:
         inout gate[];
 }
@@ -32,19 +33,21 @@ simple Node {
 network RAFT_Network
 {
     parameters:
-        int n = default(5);
+        int servers_number = default(5);
     types:
-        channel Channel extends ned.DelayChannel {
+        channel Channel extends ned.DelayChannel
+        {
             delay = 100ms;
         }
     submodules:
-        node[n]: Node {
+        server[servers_number]: Server {
             @display("p=,,ring");
-            gates: gate[n];
+            gates:
+                gate[servers_number];
         }
     connections allowunconnected:
-        for i=0..n-2, for j=i+1..n-1 {
-            node[i].gate[j] <--> Channel <--> node[j].gate[i];
+        for i=0..servers_number-2, for j=i+1..servers_number-1 {
+            server[i].gate[j] <--> Channel <--> server[j].gate[i];
         }
 
 
