@@ -23,6 +23,7 @@ simple Server
 {
     parameters:
         @display("i=device/server");
+        int servers_number = default(5);
     gates:
         inout gate[];
 }
