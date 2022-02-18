@@ -9,5 +9,6 @@
 typedef struct command_t{
             char var;
             int value;
+            command_t(): var(), value() {} // default constructor
             command_t(char _var, int _value): var(_var), value(_value) {}
 } command;
