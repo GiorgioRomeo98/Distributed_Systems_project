@@ -28,7 +28,7 @@ struct command_t;
 class noncobject commandList;
 
 
-message ClientRequest {
+message ClientRequestMsg {
     int source_addr;
     int destination_addr;
     commandList commands;

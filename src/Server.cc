@@ -24,7 +24,7 @@ class Server: public cSimpleModule
     // Persistent state on each server
     int currentTerm = 0; //latest term server has seen (initialized to 0 on first boot, increases monotonically)
     int votedFor = -1; //candidateId that received vote in current term (or null if none)
-    std::list<log_entry> log_entries; //each entry contains command for state machine, and term when entry was received by leader (first index is 1)
+    std::list<Log_entry> log_entries; //each entry contains command for state machine, and term when entry was received by leader (first index is 1)
 
     // Volatile state on each server
     int commitIndex = 0; //index of highest log entry known to be committed (initialized to 0, increases monotonically)
@@ -64,12 +64,12 @@ void Server::initialize()
     WATCH_VECTOR(matchIndex);
 
 
-    if (getIndex() == 0) {
+    /*if (getIndex() == 0) {
         // create and send first message on gate "out". "tictocMsg" is an
         // arbitrary string which will be the name of the message object.
         cMessage *msg = new cMessage("tictocMsg");
         scheduleAt(0.0, msg);
-    }
+    }*/
 }
 
 void Server::handleMessage(cMessage *msg)

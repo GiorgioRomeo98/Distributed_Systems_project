@@ -6,9 +6,9 @@
  *
  */
 
-typedef struct command_t{
+typedef struct _command{
             char var;
             int value;
-            command_t(): var(), value() {} // default constructor
-            command_t(char _var, int _value): var(_var), value(_value) {}
-} command;
+            _command(): var(), value() {} // default constructor
+            _command(char _var, int _value): var(_var), value(_value) {}
+} Command;

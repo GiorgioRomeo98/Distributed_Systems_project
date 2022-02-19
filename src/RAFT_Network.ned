@@ -31,7 +31,8 @@ simple Server
 simple Client
 {
     parameters:
-        int addr = default(-1);
+        int addr = default(-1);		// client address
+        int servers_number = default(5);	// used to randomly send a request to one of the server
         volatile double sendIaTime @unit(s);
         @display("i=device/pc2");
     gates:

@@ -1,9 +1,9 @@
-../out/clang-release/src/Cloud.o: Cloud.cc \
+../out/clang-debug/src/Server.o: Server.cc \
   C:/Users/Utente/Desktop/Programming/omnetpp-5.6.2/include\omnetpp.h \
-  clientRequestMsg_m.h command.h
+  log_entry.h command.h
 
 C:/Users/Utente/Desktop/Programming/omnetpp-5.6.2/include\omnetpp.h:
 
-clientRequestMsg_m.h:
+log_entry.h:
 
 command.h:

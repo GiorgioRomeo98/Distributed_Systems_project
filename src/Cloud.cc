@@ -7,6 +7,7 @@
 
 
 #include <omnetpp.h>
+#include "clientRequestMsg_m.h"
 
 using namespace omnetpp;
 
@@ -33,11 +34,11 @@ void Cloud::initialize()
 void Cloud::handleMessage(cMessage *msg)
 {
     // determine destination address
-    /*NetPkt *pkt = check_and_cast<NetPkt *>(msg);
-    int dest = pkt->getDestAddress();
-    EV << "Relaying packet to addr=" << dest << endl;*/
+    ClientRequestMsg *requestMsg = check_and_cast<ClientRequestMsg *>(msg);
+    int dest = requestMsg->getDestination_addr();
+    EV << "Relaying message to server with addr=" << dest << endl;
 
     // send msg to destination after the delay
-    //sendDelayed(pkt, propDelay, "g$o", dest);
+    sendDelayed(requestMsg, propDelay, "gate_s$o", dest);
 }
 

@@ -1,9 +1,9 @@
 //
-// Generated file, do not edit! Created by nedtool 5.6 from clientRequest.msg.
+// Generated file, do not edit! Created by nedtool 5.6 from clientRequestMsg.msg.
 //
 
-#ifndef __CLIENTREQUEST_M_H
-#define __CLIENTREQUEST_M_H
+#ifndef __CLIENTREQUESTMSG_M_H
+#define __CLIENTREQUESTMSG_M_H
 
 #if defined(__clang__)
 #  pragma clang diagnostic ignored "-Wreserved-id-macro"
@@ -20,13 +20,13 @@
 
 // cplusplus {{
 #include "command.h"
-typedef std::list<command_t> commandList;
+typedef std::list<_command> commandList;
 // }}
 
 /**
- * Class generated from <tt>clientRequest.msg:24</tt> by nedtool.
+ * Class generated from <tt>clientRequestMsg.msg:31</tt> by nedtool.
  * <pre>
- * message ClientRequest
+ * message ClientRequestMsg
  * {
  *     int source_addr;
  *     int destination_addr;
@@ -34,7 +34,7 @@ typedef std::list<command_t> commandList;
  * }
  * </pre>
  */
-class ClientRequest : public ::omnetpp::cMessage
+class ClientRequestMsg : public ::omnetpp::cMessage
 {
   protected:
     int source_addr;
@@ -42,18 +42,18 @@ class ClientRequest : public ::omnetpp::cMessage
     commandList commands;
 
   private:
-    void copy(const ClientRequest& other);
+    void copy(const ClientRequestMsg& other);
 
   protected:
     // protected and unimplemented operator==(), to prevent accidental usage
-    bool operator==(const ClientRequest&);
+    bool operator==(const ClientRequestMsg&);
 
   public:
-    ClientRequest(const char *name=nullptr, short kind=0);
-    ClientRequest(const ClientRequest& other);
-    virtual ~ClientRequest();
-    ClientRequest& operator=(const ClientRequest& other);
-    virtual ClientRequest *dup() const override {return new ClientRequest(*this);}
+    ClientRequestMsg(const char *name=nullptr, short kind=0);
+    ClientRequestMsg(const ClientRequestMsg& other);
+    virtual ~ClientRequestMsg();
+    ClientRequestMsg& operator=(const ClientRequestMsg& other);
+    virtual ClientRequestMsg *dup() const override {return new ClientRequestMsg(*this);}
     virtual void parsimPack(omnetpp::cCommBuffer *b) const override;
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
@@ -63,13 +63,13 @@ class ClientRequest : public ::omnetpp::cMessage
     virtual int getDestination_addr() const;
     virtual void setDestination_addr(int destination_addr);
     virtual commandList& getCommands();
-    virtual const commandList& getCommands() const {return const_cast<ClientRequest*>(this)->getCommands();}
+    virtual const commandList& getCommands() const {return const_cast<ClientRequestMsg*>(this)->getCommands();}
     virtual void setCommands(const commandList& commands);
 };
 
-inline void doParsimPacking(omnetpp::cCommBuffer *b, const ClientRequest& obj) {obj.parsimPack(b);}
-inline void doParsimUnpacking(omnetpp::cCommBuffer *b, ClientRequest& obj) {obj.parsimUnpack(b);}
+inline void doParsimPacking(omnetpp::cCommBuffer *b, const ClientRequestMsg& obj) {obj.parsimPack(b);}
+inline void doParsimUnpacking(omnetpp::cCommBuffer *b, ClientRequestMsg& obj) {obj.parsimUnpack(b);}
 
 
-#endif // ifndef __CLIENTREQUEST_M_H
+#endif // ifndef __CLIENTREQUESTMSG_M_H
 

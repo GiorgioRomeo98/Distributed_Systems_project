@@ -1,3 +1,7 @@
+[General]
+last-configname=StaticNetwork
+last-runnumber=1
+
 [RunModeProfiles]
 run-playback-speed=1
 run-min-playback-speed=0.01
