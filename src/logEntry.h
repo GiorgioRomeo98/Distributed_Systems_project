@@ -1,23 +1,29 @@
 /*
- * log_entry.h
+ * logEntry.h
  *
  *  Created on: 18 Feb 2022
  *      Author: Giorgio Romeo, Daria Preda
  */
 
+#ifndef LOGENTRY_H_
+#define LOGENTRY_H_
+
+
 #include "command.h"
 
-typedef struct _log_entry
+typedef struct _logEntry
 {
     int term;
     Command entry_command;
 
-    _log_entry(int _term, char _var, int _value): term(_term), entry_command(_var, _value) {}
+    _logEntry(int _term, char _var, int _value): term(_term), entry_command(_var, _value) {}
 
-}Log_entry;
+}LogEntry;
 
-std::ostream& operator<<(std::ostream& os, const Log_entry& log_elem)
+std::ostream& operator<<(std::ostream& os, const LogEntry& log_elem)
 {
     os << "term=" << log_elem.term << "; command: " << log_elem.entry_command.var << " <-- " << log_elem.entry_command.value; // no endl!
     return os;
 }
+
+#endif /* LOGENTRY_H_ */

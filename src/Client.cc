@@ -10,13 +10,20 @@
 
 using namespace omnetpp;
 
-class Client : public cSimpleModule
+class Client: public cSimpleModule
 {
   private:
     int addr;   // client source address
     int seq;    // message sequence number
     int servers_number; // total number of servers
+
+    simtime_t requestMsgTimeout;  // timeout
+    cMessage *requestMsgTimeoutEvent;  // holds pointer to the requestMsgTimeout self-message
     ClientRequestMsg *currentRequestMsg;
+
+  public:
+    Client();
+    virtual ~Client();
 
   protected:
     virtual void initialize() override;
@@ -27,6 +34,17 @@ class Client : public cSimpleModule
 };
 
 Define_Module(Client);
+
+Client::Client()
+{
+    requestMsgTimeoutEvent = currentRequestMsg = nullptr;
+}
+
+Client::~Client()
+{
+    cancelAndDelete(requestMsgTimeoutEvent);
+    delete currentRequestMsg;
+}
 
 void Client::initialize()
 {
