@@ -13,22 +13,15 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-
-
 // In addition to announcing types to the message compiler, their C++ declarations also need to be available
 // at compile time so that the generated code will actually compile.
-cplusplus {{
-#include "command.h"
-typedef std::list<_command> commandList;
-}};
 
 
-// To use a C++ type (class, struct a typedef) defined outside the msg file, that type needs to be announced to the message compiler.
-class noncobject commandList;
-
-
-message ClientRequestMsg {
-    int source_addr;
-    int destination_addr;
-    commandList commands;
-}
+message AppendEntriesMsg {
+    int term;			// leader’s term
+    int leaderId;		// so follower can redirect clients
+    int prevLogIndex; 	// index of log entry immediately preceding new ones
+    int prevLogTerm; 	// term of prevLogIndex entry
+    //logList entries[];  // log entries to store (empty for heartbeat; may send more than one for efficiency)
+    int leaderCommit;	// Leader’s commitIndex
+    }

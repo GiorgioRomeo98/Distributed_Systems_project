@@ -14,15 +14,16 @@
 typedef struct _logEntry
 {
     int term;
-    Command entry_command;
+    Command entryCommand;
 
-    _logEntry(int _term, char _var, int _value): term(_term), entry_command(_var, _value) {}
+    _logEntry(): term(), entryCommand() {} // default constructor
+    _logEntry(int _term, char _var, int _value): term(_term), entryCommand(_var, _value) {}
 
 }LogEntry;
 
 std::ostream& operator<<(std::ostream& os, const LogEntry& log_elem)
 {
-    os << "term=" << log_elem.term << "; command: " << log_elem.entry_command.var << " <-- " << log_elem.entry_command.value; // no endl!
+    os << "term=" << log_elem.term << "; command: " << log_elem.entryCommand.var << " <-- " << log_elem.entryCommand.value; // no endl!
     return os;
 }
 

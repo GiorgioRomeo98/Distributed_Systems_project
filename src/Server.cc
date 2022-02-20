@@ -57,9 +57,11 @@ class Server: public cSimpleModule
     void forwardMessage(cMessage *msg);
     bool appendEntries(int term, int leaderId, int prevLogIndex, int prevLogTerm, int entries[], int leaderCommit);
     void handleElectionTimeoutEvent();
+    void handleRequestVoteMsg(ServerRequestVoteMsg *requestVoteMsg);
     void handleReplyVoteMsg(ServerReplyVoteMsg *replyVoteMsg);
     void sendRequestVoteMsg();
     void sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg);
+    void handleElection();
     ServerRequestVoteMsg *generateRequestVoteMsg();
 };
 
@@ -88,7 +90,7 @@ void Server::initialize()
 {
     // Initialize is called at the beginning of the simulation.
     servers_number = par("servers_number");
-    electionTimeout = exponential(5);
+    electionTimeout = normal(5.0,1.0);
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
     nextIndex.resize(servers_number, 1);
     matchIndex.resize(servers_number, 0);
@@ -122,15 +124,12 @@ void Server::handleMessage(cMessage *msg)
     // The handleMessage() method is called whenever a message arrives at the module.
     if (msg == electionTimeoutEvent)
         handleElectionTimeoutEvent();
-    else if (dynamic_cast<ServerRequestVoteMsg *>(msg)){
-        sendReplyVoteMsg((ServerRequestVoteMsg *) msg);
-        delete msg;
-    }
-    else if (dynamic_cast<ServerReplyVoteMsg *>(msg)){
+    else if (dynamic_cast<ServerRequestVoteMsg *>(msg))
+        handleRequestVoteMsg((ServerRequestVoteMsg *) msg);
+    else if (dynamic_cast<ServerReplyVoteMsg *>(msg))
         handleReplyVoteMsg((ServerReplyVoteMsg *) msg);
-    }
-}
 
+}
 
 
 
@@ -138,12 +137,26 @@ void Server::handleElectionTimeoutEvent()
 {
     // election timeout expired, begin a new election phase: to begin an election, a follower increments its current term and
     // transitions to candidate state. It then votes for itself and issues RequestVote in parallel to each of the other servers.
+    bubble("Starting new election phase");
     currentTerm++;
     state = CANDIDATE;
     votedFor = getIndex();
     votesNumber++;
+    scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
     sendRequestVoteMsg();
-    //scheduleAt(simTime() + timeout, timeoutEvent);
+}
+
+
+
+void Server::handleRequestVoteMsg(ServerRequestVoteMsg *requestVoteMsg)
+{
+    if (requestVoteMsg->getTerm() > currentTerm){
+        state = FOLLOWER;
+        votedFor = -1;
+        votesNumber = 0;
+    }
+    sendReplyVoteMsg((ServerRequestVoteMsg *) requestVoteMsg);
+    delete requestVoteMsg;
 }
 
 
@@ -160,20 +173,30 @@ void Server::handleReplyVoteMsg(ServerReplyVoteMsg *replyVoteMsg)
             // re-initializing variables
             votedFor = -1;
             votesNumber = 0;
+            cancelEvent(electionTimeoutEvent);
+            handleElection();
         }
     }
+    delete replyVoteMsg;
 }
 
 
 
+void Server::handleElection()
+{
 
+}
+
+
+
+// Invoked by leader to replicate log entries (§5.3); also used as heartbeat
 bool Server::appendEntries(int term, int leaderId, int prevLogIndex, int prevLogTerm, int entries[], int leaderCommit)
 {
     return true;
 }
 
 
-
+// Invoked by candidates to gather votes
 void Server::sendRequestVoteMsg()
 {
     requestVoteMsg = generateRequestVoteMsg();
@@ -184,31 +207,6 @@ void Server::sendRequestVoteMsg()
             // Duplicate message and send the copy
             send((ServerRequestVoteMsg *)requestVoteMsg->dup(), "gate$o", i);
         }
-
-}
-
-
-
-void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
-{
-    char msgName[40];
-    sprintf(msgName, "replyVote_%d from server_%d", currentTerm, getIndex());
-    ServerReplyVoteMsg *replyVoteMsg = new ServerReplyVoteMsg(msgName);
-
-    bool voteGranted = false;
-    if (requestVoteMsg->getTerm() >= currentTerm)
-        if ((votedFor == -1 or votedFor == requestVoteMsg->getCandidateId()) /*and candidate’s log is at least as up-to-date as receiver’s log, grant vote*/)
-            voteGranted = true;
-
-    replyVoteMsg->setSource(getIndex());
-    replyVoteMsg->setTerm(currentTerm);
-    replyVoteMsg->setVoteGranted(voteGranted);
-
-    int dest = requestVoteMsg->getSource();
-    // sending the message
-    EV << "Forwarding message " << replyVoteMsg << " towards server_" << dest << "\n";
-    // Duplicate message and send the copy
-    send(replyVoteMsg, "gate$o", dest);
 }
 
 
@@ -227,6 +225,40 @@ ServerRequestVoteMsg *Server::generateRequestVoteMsg()
     msg->setLastLogTerm(-1);
 
     return msg;
+}
+
+
+
+void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
+{
+    char msgName[40];
+    sprintf(msgName, "replyVote_%d from server_%d", currentTerm, getIndex());
+    ServerReplyVoteMsg *replyVoteMsg = new ServerReplyVoteMsg(msgName);
+
+    int sourceTerm = requestVoteMsg->getTerm();
+    /*if (sourceTerm > currentTerm and state != FOLLOWER){
+        state = FOLLOWER;
+        votedFor = -1;
+        votesNumber = 0;
+        //scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
+        return;
+    }*/
+
+    bool voteGranted = false;
+    if (requestVoteMsg->getTerm() >= currentTerm){  //CHECK THE >= SIGN
+        if ((votedFor == -1 or votedFor == requestVoteMsg->getCandidateId()) /*and candidate’s log is at least as up-to-date as receiver’s log, grant vote*/)
+            voteGranted = true;
+    }
+
+    replyVoteMsg->setSource(getIndex());
+    replyVoteMsg->setTerm(currentTerm);
+    replyVoteMsg->setVoteGranted(voteGranted);
+
+    int dest = requestVoteMsg->getSource();
+    // sending the message
+    EV << "Forwarding message " << replyVoteMsg << " towards server_" << dest << "\n";
+    // Duplicate message and send the copy
+    send(replyVoteMsg, "gate$o", dest);
 }
 
 

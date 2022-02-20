@@ -24,7 +24,7 @@ typedef std::list<_command> commandList;
 // }}
 
 /**
- * Class generated from <tt>clientRequestMsg.msg:31</tt> by nedtool.
+ * Class generated from <tt>clientRequestMsg.msg:30</tt> by nedtool.
  * <pre>
  * message ClientRequestMsg
  * {

@@ -34,12 +34,14 @@ OBJS = \
     $O/Client.o \
     $O/Cloud.o \
     $O/Server.o \
+    $O/appendEntriesMsg_m.o \
     $O/clientRequestMsg_m.o \
     $O/serverReplyVoteMsg_m.o \
     $O/serverRequestVoteMsg_m.o
 
 # Message files
 MSGFILES = \
+    appendEntriesMsg.msg \
     clientRequestMsg.msg \
     serverReplyVoteMsg.msg \
     serverRequestVoteMsg.msg
