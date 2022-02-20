@@ -20,7 +20,7 @@
 
 // cplusplus {{
 #include "command.h"
-typedef std::list<_command> commandList;
+typedef _command Cmd;
 // }}
 
 /**
@@ -30,7 +30,7 @@ typedef std::list<_command> commandList;
  * {
  *     int source_addr;
  *     int destination_addr;
- *     commandList commands;
+ *     Cmd command;
  * }
  * </pre>
  */
@@ -39,7 +39,7 @@ class ClientRequestMsg : public ::omnetpp::cMessage
   protected:
     int source_addr;
     int destination_addr;
-    commandList commands;
+    Cmd command;
 
   private:
     void copy(const ClientRequestMsg& other);
@@ -62,9 +62,9 @@ class ClientRequestMsg : public ::omnetpp::cMessage
     virtual void setSource_addr(int source_addr);
     virtual int getDestination_addr() const;
     virtual void setDestination_addr(int destination_addr);
-    virtual commandList& getCommands();
-    virtual const commandList& getCommands() const {return const_cast<ClientRequestMsg*>(this)->getCommands();}
-    virtual void setCommands(const commandList& commands);
+    virtual Cmd& getCommand();
+    virtual const Cmd& getCommand() const {return const_cast<ClientRequestMsg*>(this)->getCommand();}
+    virtual void setCommand(const Cmd& command);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const ClientRequestMsg& obj) {obj.parsimPack(b);}

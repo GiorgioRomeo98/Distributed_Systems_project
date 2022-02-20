@@ -18,8 +18,13 @@
 
 
 
+// cplusplus {{
+#include "logEntry.h"
+typedef std::list<_logEntry> logList;
+// }}
+
 /**
- * Class generated from <tt>appendEntriesMsg.msg:20</tt> by nedtool.
+ * Class generated from <tt>appendEntriesMsg.msg:26</tt> by nedtool.
  * <pre>
  * message AppendEntriesMsg
  * {
@@ -27,7 +32,7 @@
  *     int leaderId;		// so follower can redirect clients
  *     int prevLogIndex; 	// index of log entry immediately preceding new ones
  *     int prevLogTerm; 	// term of prevLogIndex entry
- *     //logList entries[];  // log entries to store (empty for heartbeat; may send more than one for efficiency)
+ *     logList entries[];  // log entries to store (empty for heartbeat; may send more than one for efficiency)
  *     int leaderCommit;	// Leader’s commitIndex
  * }
  * </pre>
@@ -39,6 +44,8 @@ class AppendEntriesMsg : public ::omnetpp::cMessage
     int leaderId;
     int prevLogIndex;
     int prevLogTerm;
+    logList *entries; // array ptr
+    unsigned int entries_arraysize;
     int leaderCommit;
 
   private:
@@ -66,6 +73,11 @@ class AppendEntriesMsg : public ::omnetpp::cMessage
     virtual void setPrevLogIndex(int prevLogIndex);
     virtual int getPrevLogTerm() const;
     virtual void setPrevLogTerm(int prevLogTerm);
+    virtual void setEntriesArraySize(unsigned int size);
+    virtual unsigned int getEntriesArraySize() const;
+    virtual logList& getEntries(unsigned int k);
+    virtual const logList& getEntries(unsigned int k) const {return const_cast<AppendEntriesMsg*>(this)->getEntries(k);}
+    virtual void setEntries(unsigned int k, const logList& entries);
     virtual int getLeaderCommit() const;
     virtual void setLeaderCommit(int leaderCommit);
 };

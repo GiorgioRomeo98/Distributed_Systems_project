@@ -21,7 +21,7 @@ typedef struct _logEntry
 
 }LogEntry;
 
-std::ostream& operator<<(std::ostream& os, const LogEntry& log_elem)
+inline std::ostream& operator<<(std::ostream& os, const LogEntry& log_elem)
 {
     os << "term=" << log_elem.term << "; command: " << log_elem.entryCommand.var << " <-- " << log_elem.entryCommand.value; // no endl!
     return os;

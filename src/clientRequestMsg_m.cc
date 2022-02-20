@@ -206,7 +206,7 @@ void ClientRequestMsg::copy(const ClientRequestMsg& other)
 {
     this->source_addr = other.source_addr;
     this->destination_addr = other.destination_addr;
-    this->commands = other.commands;
+    this->command = other.command;
 }
 
 void ClientRequestMsg::parsimPack(omnetpp::cCommBuffer *b) const
@@ -214,7 +214,7 @@ void ClientRequestMsg::parsimPack(omnetpp::cCommBuffer *b) const
     ::omnetpp::cMessage::parsimPack(b);
     doParsimPacking(b,this->source_addr);
     doParsimPacking(b,this->destination_addr);
-    doParsimPacking(b,this->commands);
+    doParsimPacking(b,this->command);
 }
 
 void ClientRequestMsg::parsimUnpack(omnetpp::cCommBuffer *b)
@@ -222,7 +222,7 @@ void ClientRequestMsg::parsimUnpack(omnetpp::cCommBuffer *b)
     ::omnetpp::cMessage::parsimUnpack(b);
     doParsimUnpacking(b,this->source_addr);
     doParsimUnpacking(b,this->destination_addr);
-    doParsimUnpacking(b,this->commands);
+    doParsimUnpacking(b,this->command);
 }
 
 int ClientRequestMsg::getSource_addr() const
@@ -245,14 +245,14 @@ void ClientRequestMsg::setDestination_addr(int destination_addr)
     this->destination_addr = destination_addr;
 }
 
-commandList& ClientRequestMsg::getCommands()
+Cmd& ClientRequestMsg::getCommand()
 {
-    return this->commands;
+    return this->command;
 }
 
-void ClientRequestMsg::setCommands(const commandList& commands)
+void ClientRequestMsg::setCommand(const Cmd& command)
 {
-    this->commands = commands;
+    this->command = command;
 }
 
 class ClientRequestMsgDescriptor : public omnetpp::cClassDescriptor
@@ -350,7 +350,7 @@ const char *ClientRequestMsgDescriptor::getFieldName(int field) const
     static const char *fieldNames[] = {
         "source_addr",
         "destination_addr",
-        "commands",
+        "command",
     };
     return (field>=0 && field<3) ? fieldNames[field] : nullptr;
 }
@@ -361,7 +361,7 @@ int ClientRequestMsgDescriptor::findField(const char *fieldName) const
     int base = basedesc ? basedesc->getFieldCount() : 0;
     if (fieldName[0]=='s' && strcmp(fieldName, "source_addr")==0) return base+0;
     if (fieldName[0]=='d' && strcmp(fieldName, "destination_addr")==0) return base+1;
-    if (fieldName[0]=='c' && strcmp(fieldName, "commands")==0) return base+2;
+    if (fieldName[0]=='c' && strcmp(fieldName, "command")==0) return base+2;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -376,7 +376,7 @@ const char *ClientRequestMsgDescriptor::getFieldTypeString(int field) const
     static const char *fieldTypeStrings[] = {
         "int",
         "int",
-        "commandList",
+        "Cmd",
     };
     return (field>=0 && field<3) ? fieldTypeStrings[field] : nullptr;
 }
@@ -447,7 +447,7 @@ std::string ClientRequestMsgDescriptor::getFieldValueAsString(void *object, int 
     switch (field) {
         case 0: return long2string(pp->getSource_addr());
         case 1: return long2string(pp->getDestination_addr());
-        case 2: {std::stringstream out; out << pp->getCommands(); return out.str();}
+        case 2: {std::stringstream out; out << pp->getCommand(); return out.str();}
         default: return "";
     }
 }
@@ -477,7 +477,7 @@ const char *ClientRequestMsgDescriptor::getFieldStructName(int field) const
         field -= basedesc->getFieldCount();
     }
     switch (field) {
-        case 2: return omnetpp::opp_typename(typeid(commandList));
+        case 2: return omnetpp::opp_typename(typeid(Cmd));
         default: return nullptr;
     };
 }
@@ -492,7 +492,7 @@ void *ClientRequestMsgDescriptor::getFieldStructValuePointer(void *object, int f
     }
     ClientRequestMsg *pp = (ClientRequestMsg *)object; (void)pp;
     switch (field) {
-        case 2: return (void *)(&pp->getCommands()); break;
+        case 2: return (void *)(&pp->getCommand()); break;
         default: return nullptr;
     }
 }

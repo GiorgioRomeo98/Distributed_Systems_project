@@ -19,16 +19,16 @@
 // at compile time so that the generated code will actually compile.
 cplusplus {{
 #include "command.h"
-typedef std::list<_command> commandList;
+typedef _command Cmd;
 }};
 
 
 // To use a C++ type (class, struct a typedef) defined outside the msg file, that type needs to be announced to the message compiler.
-class noncobject commandList;
+class noncobject Cmd;
 
 
 message ClientRequestMsg {
     int source_addr;
     int destination_addr;
-    commandList commands;
+    Cmd command;
 }

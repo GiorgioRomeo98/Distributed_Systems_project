@@ -185,16 +185,21 @@ AppendEntriesMsg::AppendEntriesMsg(const char *name, short kind) : ::omnetpp::cM
     this->leaderId = 0;
     this->prevLogIndex = 0;
     this->prevLogTerm = 0;
+    entries_arraysize = 0;
+    this->entries = 0;
     this->leaderCommit = 0;
 }
 
 AppendEntriesMsg::AppendEntriesMsg(const AppendEntriesMsg& other) : ::omnetpp::cMessage(other)
 {
+    entries_arraysize = 0;
+    this->entries = 0;
     copy(other);
 }
 
 AppendEntriesMsg::~AppendEntriesMsg()
 {
+    delete [] this->entries;
 }
 
 AppendEntriesMsg& AppendEntriesMsg::operator=(const AppendEntriesMsg& other)
@@ -211,6 +216,11 @@ void AppendEntriesMsg::copy(const AppendEntriesMsg& other)
     this->leaderId = other.leaderId;
     this->prevLogIndex = other.prevLogIndex;
     this->prevLogTerm = other.prevLogTerm;
+    delete [] this->entries;
+    this->entries = (other.entries_arraysize==0) ? nullptr : new logList[other.entries_arraysize];
+    entries_arraysize = other.entries_arraysize;
+    for (unsigned int i=0; i<entries_arraysize; i++)
+        this->entries[i] = other.entries[i];
     this->leaderCommit = other.leaderCommit;
 }
 
@@ -221,6 +231,8 @@ void AppendEntriesMsg::parsimPack(omnetpp::cCommBuffer *b) const
     doParsimPacking(b,this->leaderId);
     doParsimPacking(b,this->prevLogIndex);
     doParsimPacking(b,this->prevLogTerm);
+    b->pack(entries_arraysize);
+    doParsimArrayPacking(b,this->entries,entries_arraysize);
     doParsimPacking(b,this->leaderCommit);
 }
 
@@ -231,6 +243,14 @@ void AppendEntriesMsg::parsimUnpack(omnetpp::cCommBuffer *b)
     doParsimUnpacking(b,this->leaderId);
     doParsimUnpacking(b,this->prevLogIndex);
     doParsimUnpacking(b,this->prevLogTerm);
+    delete [] this->entries;
+    b->unpack(entries_arraysize);
+    if (entries_arraysize==0) {
+        this->entries = 0;
+    } else {
+        this->entries = new logList[entries_arraysize];
+        doParsimArrayUnpacking(b,this->entries,entries_arraysize);
+    }
     doParsimUnpacking(b,this->leaderCommit);
 }
 
@@ -272,6 +292,34 @@ int AppendEntriesMsg::getPrevLogTerm() const
 void AppendEntriesMsg::setPrevLogTerm(int prevLogTerm)
 {
     this->prevLogTerm = prevLogTerm;
+}
+
+void AppendEntriesMsg::setEntriesArraySize(unsigned int size)
+{
+    logList *entries2 = (size==0) ? nullptr : new logList[size];
+    unsigned int sz = entries_arraysize < size ? entries_arraysize : size;
+    for (unsigned int i=0; i<sz; i++)
+        entries2[i] = this->entries[i];
+    entries_arraysize = size;
+    delete [] this->entries;
+    this->entries = entries2;
+}
+
+unsigned int AppendEntriesMsg::getEntriesArraySize() const
+{
+    return entries_arraysize;
+}
+
+logList& AppendEntriesMsg::getEntries(unsigned int k)
+{
+    if (k>=entries_arraysize) throw omnetpp::cRuntimeError("Array of size %d indexed by %d", entries_arraysize, k);
+    return this->entries[k];
+}
+
+void AppendEntriesMsg::setEntries(unsigned int k, const logList& entries)
+{
+    if (k>=entries_arraysize) throw omnetpp::cRuntimeError("Array of size %d indexed by %d", entries_arraysize, k);
+    this->entries[k] = entries;
 }
 
 int AppendEntriesMsg::getLeaderCommit() const
@@ -349,7 +397,7 @@ const char *AppendEntriesMsgDescriptor::getProperty(const char *propertyname) co
 int AppendEntriesMsgDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 5+basedesc->getFieldCount() : 5;
+    return basedesc ? 6+basedesc->getFieldCount() : 6;
 }
 
 unsigned int AppendEntriesMsgDescriptor::getFieldTypeFlags(int field) const
@@ -365,9 +413,10 @@ unsigned int AppendEntriesMsgDescriptor::getFieldTypeFlags(int field) const
         FD_ISEDITABLE,
         FD_ISEDITABLE,
         FD_ISEDITABLE,
+        FD_ISARRAY | FD_ISCOMPOUND,
         FD_ISEDITABLE,
     };
-    return (field>=0 && field<5) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<6) ? fieldTypeFlags[field] : 0;
 }
 
 const char *AppendEntriesMsgDescriptor::getFieldName(int field) const
@@ -383,9 +432,10 @@ const char *AppendEntriesMsgDescriptor::getFieldName(int field) const
         "leaderId",
         "prevLogIndex",
         "prevLogTerm",
+        "entries",
         "leaderCommit",
     };
-    return (field>=0 && field<5) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<6) ? fieldNames[field] : nullptr;
 }
 
 int AppendEntriesMsgDescriptor::findField(const char *fieldName) const
@@ -396,7 +446,8 @@ int AppendEntriesMsgDescriptor::findField(const char *fieldName) const
     if (fieldName[0]=='l' && strcmp(fieldName, "leaderId")==0) return base+1;
     if (fieldName[0]=='p' && strcmp(fieldName, "prevLogIndex")==0) return base+2;
     if (fieldName[0]=='p' && strcmp(fieldName, "prevLogTerm")==0) return base+3;
-    if (fieldName[0]=='l' && strcmp(fieldName, "leaderCommit")==0) return base+4;
+    if (fieldName[0]=='e' && strcmp(fieldName, "entries")==0) return base+4;
+    if (fieldName[0]=='l' && strcmp(fieldName, "leaderCommit")==0) return base+5;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -413,9 +464,10 @@ const char *AppendEntriesMsgDescriptor::getFieldTypeString(int field) const
         "int",
         "int",
         "int",
+        "logList",
         "int",
     };
-    return (field>=0 && field<5) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<6) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **AppendEntriesMsgDescriptor::getFieldPropertyNames(int field) const
@@ -454,6 +506,7 @@ int AppendEntriesMsgDescriptor::getFieldArraySize(void *object, int field) const
     }
     AppendEntriesMsg *pp = (AppendEntriesMsg *)object; (void)pp;
     switch (field) {
+        case 4: return pp->getEntriesArraySize();
         default: return 0;
     }
 }
@@ -486,7 +539,8 @@ std::string AppendEntriesMsgDescriptor::getFieldValueAsString(void *object, int 
         case 1: return long2string(pp->getLeaderId());
         case 2: return long2string(pp->getPrevLogIndex());
         case 3: return long2string(pp->getPrevLogTerm());
-        case 4: return long2string(pp->getLeaderCommit());
+        case 4: {std::stringstream out; out << pp->getEntries(i); return out.str();}
+        case 5: return long2string(pp->getLeaderCommit());
         default: return "";
     }
 }
@@ -505,7 +559,7 @@ bool AppendEntriesMsgDescriptor::setFieldValueAsString(void *object, int field, 
         case 1: pp->setLeaderId(string2long(value)); return true;
         case 2: pp->setPrevLogIndex(string2long(value)); return true;
         case 3: pp->setPrevLogTerm(string2long(value)); return true;
-        case 4: pp->setLeaderCommit(string2long(value)); return true;
+        case 5: pp->setLeaderCommit(string2long(value)); return true;
         default: return false;
     }
 }
@@ -519,6 +573,7 @@ const char *AppendEntriesMsgDescriptor::getFieldStructName(int field) const
         field -= basedesc->getFieldCount();
     }
     switch (field) {
+        case 4: return omnetpp::opp_typename(typeid(logList));
         default: return nullptr;
     };
 }
@@ -533,6 +588,7 @@ void *AppendEntriesMsgDescriptor::getFieldStructValuePointer(void *object, int f
     }
     AppendEntriesMsg *pp = (AppendEntriesMsg *)object; (void)pp;
     switch (field) {
+        case 4: return (void *)(&pp->getEntries(i)); break;
         default: return nullptr;
     }
 }

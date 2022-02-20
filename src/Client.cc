@@ -17,6 +17,8 @@ class Client: public cSimpleModule
     int seq;    // message sequence number
     int servers_number; // total number of servers
 
+    Command currentCommand;
+
     simtime_t requestMsgTimeout;  // timeout
     cMessage *requestMsgTimeoutEvent;  // holds pointer to the requestMsgTimeout self-message
     ClientRequestMsg *currentRequestMsg;
@@ -56,6 +58,8 @@ void Client::initialize()
     seq = 0;
     servers_number = par("servers_number");
 
+    WATCH(currentCommand);
+
     // client's attributes to watch during simulation
 
     if (getIndex() == 0){
@@ -85,10 +89,9 @@ ClientRequestMsg * Client::generateNewMessage()
     msg->setSource_addr(addr);
     msg->setDestination_addr(server_addr);
 
-    // assign commands to the message
-    msg->getCommands().push_back(Command('x', 5));
-    msg->getCommands().push_back(Command('y', 2));
-    msg->getCommands().push_back(Command('z', 7));
+    // assign command to the message
+    currentCommand = Command('x',5);
+    msg->setCommand(currentCommand);
 
     return msg;
 }
@@ -98,10 +101,14 @@ void Client::sendRequest(ClientRequestMsg * msg)
     // Duplicate message and send the copy.
     ClientRequestMsg *copy = (ClientRequestMsg *)msg->dup();
 
-    EV << "Forwarding message " << msg << " with commands: ";
-    for (auto const &cmd : msg->getCommands())
+
+    EV << "Forwarding message " << msg << " with command: " << currentCommand.var << " <-- " << currentCommand.value << "\n";
+    /*
+    * If Client can send a list og commands (for sake of simplicity, just 1 command as suggested from RAFT paper)
+    for (auto const &cmd : msg->getCommand())
         EV << cmd.var << " <-- " << cmd.value << "; ";
     EV << "\n";
+    */
 
     send(copy, "gate$o");
 }

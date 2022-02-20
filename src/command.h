@@ -16,4 +16,11 @@ typedef struct _command{
             _command(char _var, int _value): var(_var), value(_value) {}
 } Command;
 
+inline std::ostream& operator<<(std::ostream& os, const Command& cmd)
+{
+    os << cmd.var << " <-- " << cmd.value; // no endl!
+    return os;
+}
+
+
 #endif /* COMMAND_H_ */
