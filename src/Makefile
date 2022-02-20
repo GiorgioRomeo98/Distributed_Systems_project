@@ -30,12 +30,19 @@ PROJECTRELATIVE_PATH = src
 O = $(PROJECT_OUTPUT_DIR)/$(CONFIGNAME)/$(PROJECTRELATIVE_PATH)
 
 # Object files for local .cc, .msg and .sm files
-OBJS = $O/Client.o $O/Cloud.o $O/Server.o $O/clientRequestMsg_m.o $O/serverRequestVote_m.o
+OBJS = \
+    $O/Client.o \
+    $O/Cloud.o \
+    $O/Server.o \
+    $O/clientRequestMsg_m.o \
+    $O/serverReplyVoteMsg_m.o \
+    $O/serverRequestVoteMsg_m.o
 
 # Message files
 MSGFILES = \
     clientRequestMsg.msg \
-    serverRequestVote.msg
+    serverReplyVoteMsg.msg \
+    serverRequestVoteMsg.msg
 
 # SM files
 SMFILES =

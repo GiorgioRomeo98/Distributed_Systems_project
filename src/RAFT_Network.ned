@@ -61,7 +61,7 @@ network RAFT_Network
     types:
         channel Channel extends ned.DelayChannel
         {
-            delay = 100ms;
+            delay = exponential(1s);
         }
     submodules:
         server[servers_number]: Server {

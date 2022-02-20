@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by nedtool 5.6 from serverRequestVote.msg.
+// Generated file, do not edit! Created by nedtool 5.6 from serverRequestVoteMsg.msg.
 //
 
 // Disable warnings about unused variables, empty switch stmts, etc:
@@ -26,7 +26,7 @@
 
 #include <iostream>
 #include <sstream>
-#include "serverRequestVote_m.h"
+#include "serverRequestVoteMsg_m.h"
 
 namespace omnetpp {
 
@@ -177,26 +177,27 @@ inline std::ostream& operator<<(std::ostream& out, const std::vector<T,A>& vec)
     return out;
 }
 
-Register_Class(ServerRequestVote)
+Register_Class(ServerRequestVoteMsg)
 
-ServerRequestVote::ServerRequestVote(const char *name, short kind) : ::omnetpp::cMessage(name,kind)
+ServerRequestVoteMsg::ServerRequestVoteMsg(const char *name, short kind) : ::omnetpp::cMessage(name,kind)
 {
+    this->source = 0;
     this->term = 0;
     this->candidateId = 0;
     this->lastLogIndex = 0;
     this->lastLogTerm = 0;
 }
 
-ServerRequestVote::ServerRequestVote(const ServerRequestVote& other) : ::omnetpp::cMessage(other)
+ServerRequestVoteMsg::ServerRequestVoteMsg(const ServerRequestVoteMsg& other) : ::omnetpp::cMessage(other)
 {
     copy(other);
 }
 
-ServerRequestVote::~ServerRequestVote()
+ServerRequestVoteMsg::~ServerRequestVoteMsg()
 {
 }
 
-ServerRequestVote& ServerRequestVote::operator=(const ServerRequestVote& other)
+ServerRequestVoteMsg& ServerRequestVoteMsg::operator=(const ServerRequestVoteMsg& other)
 {
     if (this==&other) return *this;
     ::omnetpp::cMessage::operator=(other);
@@ -204,79 +205,92 @@ ServerRequestVote& ServerRequestVote::operator=(const ServerRequestVote& other)
     return *this;
 }
 
-void ServerRequestVote::copy(const ServerRequestVote& other)
+void ServerRequestVoteMsg::copy(const ServerRequestVoteMsg& other)
 {
+    this->source = other.source;
     this->term = other.term;
     this->candidateId = other.candidateId;
     this->lastLogIndex = other.lastLogIndex;
     this->lastLogTerm = other.lastLogTerm;
 }
 
-void ServerRequestVote::parsimPack(omnetpp::cCommBuffer *b) const
+void ServerRequestVoteMsg::parsimPack(omnetpp::cCommBuffer *b) const
 {
     ::omnetpp::cMessage::parsimPack(b);
+    doParsimPacking(b,this->source);
     doParsimPacking(b,this->term);
     doParsimPacking(b,this->candidateId);
     doParsimPacking(b,this->lastLogIndex);
     doParsimPacking(b,this->lastLogTerm);
 }
 
-void ServerRequestVote::parsimUnpack(omnetpp::cCommBuffer *b)
+void ServerRequestVoteMsg::parsimUnpack(omnetpp::cCommBuffer *b)
 {
     ::omnetpp::cMessage::parsimUnpack(b);
+    doParsimUnpacking(b,this->source);
     doParsimUnpacking(b,this->term);
     doParsimUnpacking(b,this->candidateId);
     doParsimUnpacking(b,this->lastLogIndex);
     doParsimUnpacking(b,this->lastLogTerm);
 }
 
-int ServerRequestVote::getTerm() const
+int ServerRequestVoteMsg::getSource() const
+{
+    return this->source;
+}
+
+void ServerRequestVoteMsg::setSource(int source)
+{
+    this->source = source;
+}
+
+int ServerRequestVoteMsg::getTerm() const
 {
     return this->term;
 }
 
-void ServerRequestVote::setTerm(int term)
+void ServerRequestVoteMsg::setTerm(int term)
 {
     this->term = term;
 }
 
-int ServerRequestVote::getCandidateId() const
+int ServerRequestVoteMsg::getCandidateId() const
 {
     return this->candidateId;
 }
 
-void ServerRequestVote::setCandidateId(int candidateId)
+void ServerRequestVoteMsg::setCandidateId(int candidateId)
 {
     this->candidateId = candidateId;
 }
 
-int ServerRequestVote::getLastLogIndex() const
+int ServerRequestVoteMsg::getLastLogIndex() const
 {
     return this->lastLogIndex;
 }
 
-void ServerRequestVote::setLastLogIndex(int lastLogIndex)
+void ServerRequestVoteMsg::setLastLogIndex(int lastLogIndex)
 {
     this->lastLogIndex = lastLogIndex;
 }
 
-int ServerRequestVote::getLastLogTerm() const
+int ServerRequestVoteMsg::getLastLogTerm() const
 {
     return this->lastLogTerm;
 }
 
-void ServerRequestVote::setLastLogTerm(int lastLogTerm)
+void ServerRequestVoteMsg::setLastLogTerm(int lastLogTerm)
 {
     this->lastLogTerm = lastLogTerm;
 }
 
-class ServerRequestVoteDescriptor : public omnetpp::cClassDescriptor
+class ServerRequestVoteMsgDescriptor : public omnetpp::cClassDescriptor
 {
   private:
     mutable const char **propertynames;
   public:
-    ServerRequestVoteDescriptor();
-    virtual ~ServerRequestVoteDescriptor();
+    ServerRequestVoteMsgDescriptor();
+    virtual ~ServerRequestVoteMsgDescriptor();
 
     virtual bool doesSupport(omnetpp::cObject *obj) const override;
     virtual const char **getPropertyNames() const override;
@@ -298,24 +312,24 @@ class ServerRequestVoteDescriptor : public omnetpp::cClassDescriptor
     virtual void *getFieldStructValuePointer(void *object, int field, int i) const override;
 };
 
-Register_ClassDescriptor(ServerRequestVoteDescriptor)
+Register_ClassDescriptor(ServerRequestVoteMsgDescriptor)
 
-ServerRequestVoteDescriptor::ServerRequestVoteDescriptor() : omnetpp::cClassDescriptor("ServerRequestVote", "omnetpp::cMessage")
+ServerRequestVoteMsgDescriptor::ServerRequestVoteMsgDescriptor() : omnetpp::cClassDescriptor("ServerRequestVoteMsg", "omnetpp::cMessage")
 {
     propertynames = nullptr;
 }
 
-ServerRequestVoteDescriptor::~ServerRequestVoteDescriptor()
+ServerRequestVoteMsgDescriptor::~ServerRequestVoteMsgDescriptor()
 {
     delete[] propertynames;
 }
 
-bool ServerRequestVoteDescriptor::doesSupport(omnetpp::cObject *obj) const
+bool ServerRequestVoteMsgDescriptor::doesSupport(omnetpp::cObject *obj) const
 {
-    return dynamic_cast<ServerRequestVote *>(obj)!=nullptr;
+    return dynamic_cast<ServerRequestVoteMsg *>(obj)!=nullptr;
 }
 
-const char **ServerRequestVoteDescriptor::getPropertyNames() const
+const char **ServerRequestVoteMsgDescriptor::getPropertyNames() const
 {
     if (!propertynames) {
         static const char *names[] = {  nullptr };
@@ -326,19 +340,19 @@ const char **ServerRequestVoteDescriptor::getPropertyNames() const
     return propertynames;
 }
 
-const char *ServerRequestVoteDescriptor::getProperty(const char *propertyname) const
+const char *ServerRequestVoteMsgDescriptor::getProperty(const char *propertyname) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     return basedesc ? basedesc->getProperty(propertyname) : nullptr;
 }
 
-int ServerRequestVoteDescriptor::getFieldCount() const
+int ServerRequestVoteMsgDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 4+basedesc->getFieldCount() : 4;
+    return basedesc ? 5+basedesc->getFieldCount() : 5;
 }
 
-unsigned int ServerRequestVoteDescriptor::getFieldTypeFlags(int field) const
+unsigned int ServerRequestVoteMsgDescriptor::getFieldTypeFlags(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -351,11 +365,12 @@ unsigned int ServerRequestVoteDescriptor::getFieldTypeFlags(int field) const
         FD_ISEDITABLE,
         FD_ISEDITABLE,
         FD_ISEDITABLE,
+        FD_ISEDITABLE,
     };
-    return (field>=0 && field<4) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<5) ? fieldTypeFlags[field] : 0;
 }
 
-const char *ServerRequestVoteDescriptor::getFieldName(int field) const
+const char *ServerRequestVoteMsgDescriptor::getFieldName(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -364,26 +379,28 @@ const char *ServerRequestVoteDescriptor::getFieldName(int field) const
         field -= basedesc->getFieldCount();
     }
     static const char *fieldNames[] = {
+        "source",
         "term",
         "candidateId",
         "lastLogIndex",
         "lastLogTerm",
     };
-    return (field>=0 && field<4) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<5) ? fieldNames[field] : nullptr;
 }
 
-int ServerRequestVoteDescriptor::findField(const char *fieldName) const
+int ServerRequestVoteMsgDescriptor::findField(const char *fieldName) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     int base = basedesc ? basedesc->getFieldCount() : 0;
-    if (fieldName[0]=='t' && strcmp(fieldName, "term")==0) return base+0;
-    if (fieldName[0]=='c' && strcmp(fieldName, "candidateId")==0) return base+1;
-    if (fieldName[0]=='l' && strcmp(fieldName, "lastLogIndex")==0) return base+2;
-    if (fieldName[0]=='l' && strcmp(fieldName, "lastLogTerm")==0) return base+3;
+    if (fieldName[0]=='s' && strcmp(fieldName, "source")==0) return base+0;
+    if (fieldName[0]=='t' && strcmp(fieldName, "term")==0) return base+1;
+    if (fieldName[0]=='c' && strcmp(fieldName, "candidateId")==0) return base+2;
+    if (fieldName[0]=='l' && strcmp(fieldName, "lastLogIndex")==0) return base+3;
+    if (fieldName[0]=='l' && strcmp(fieldName, "lastLogTerm")==0) return base+4;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
-const char *ServerRequestVoteDescriptor::getFieldTypeString(int field) const
+const char *ServerRequestVoteMsgDescriptor::getFieldTypeString(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -396,11 +413,12 @@ const char *ServerRequestVoteDescriptor::getFieldTypeString(int field) const
         "int",
         "int",
         "int",
+        "int",
     };
-    return (field>=0 && field<4) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<5) ? fieldTypeStrings[field] : nullptr;
 }
 
-const char **ServerRequestVoteDescriptor::getFieldPropertyNames(int field) const
+const char **ServerRequestVoteMsgDescriptor::getFieldPropertyNames(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -413,7 +431,7 @@ const char **ServerRequestVoteDescriptor::getFieldPropertyNames(int field) const
     }
 }
 
-const char *ServerRequestVoteDescriptor::getFieldProperty(int field, const char *propertyname) const
+const char *ServerRequestVoteMsgDescriptor::getFieldProperty(int field, const char *propertyname) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -426,7 +444,7 @@ const char *ServerRequestVoteDescriptor::getFieldProperty(int field, const char 
     }
 }
 
-int ServerRequestVoteDescriptor::getFieldArraySize(void *object, int field) const
+int ServerRequestVoteMsgDescriptor::getFieldArraySize(void *object, int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -434,13 +452,13 @@ int ServerRequestVoteDescriptor::getFieldArraySize(void *object, int field) cons
             return basedesc->getFieldArraySize(object, field);
         field -= basedesc->getFieldCount();
     }
-    ServerRequestVote *pp = (ServerRequestVote *)object; (void)pp;
+    ServerRequestVoteMsg *pp = (ServerRequestVoteMsg *)object; (void)pp;
     switch (field) {
         default: return 0;
     }
 }
 
-const char *ServerRequestVoteDescriptor::getFieldDynamicTypeString(void *object, int field, int i) const
+const char *ServerRequestVoteMsgDescriptor::getFieldDynamicTypeString(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -448,13 +466,13 @@ const char *ServerRequestVoteDescriptor::getFieldDynamicTypeString(void *object,
             return basedesc->getFieldDynamicTypeString(object,field,i);
         field -= basedesc->getFieldCount();
     }
-    ServerRequestVote *pp = (ServerRequestVote *)object; (void)pp;
+    ServerRequestVoteMsg *pp = (ServerRequestVoteMsg *)object; (void)pp;
     switch (field) {
         default: return nullptr;
     }
 }
 
-std::string ServerRequestVoteDescriptor::getFieldValueAsString(void *object, int field, int i) const
+std::string ServerRequestVoteMsgDescriptor::getFieldValueAsString(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -462,17 +480,18 @@ std::string ServerRequestVoteDescriptor::getFieldValueAsString(void *object, int
             return basedesc->getFieldValueAsString(object,field,i);
         field -= basedesc->getFieldCount();
     }
-    ServerRequestVote *pp = (ServerRequestVote *)object; (void)pp;
+    ServerRequestVoteMsg *pp = (ServerRequestVoteMsg *)object; (void)pp;
     switch (field) {
-        case 0: return long2string(pp->getTerm());
-        case 1: return long2string(pp->getCandidateId());
-        case 2: return long2string(pp->getLastLogIndex());
-        case 3: return long2string(pp->getLastLogTerm());
+        case 0: return long2string(pp->getSource());
+        case 1: return long2string(pp->getTerm());
+        case 2: return long2string(pp->getCandidateId());
+        case 3: return long2string(pp->getLastLogIndex());
+        case 4: return long2string(pp->getLastLogTerm());
         default: return "";
     }
 }
 
-bool ServerRequestVoteDescriptor::setFieldValueAsString(void *object, int field, int i, const char *value) const
+bool ServerRequestVoteMsgDescriptor::setFieldValueAsString(void *object, int field, int i, const char *value) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -480,17 +499,18 @@ bool ServerRequestVoteDescriptor::setFieldValueAsString(void *object, int field,
             return basedesc->setFieldValueAsString(object,field,i,value);
         field -= basedesc->getFieldCount();
     }
-    ServerRequestVote *pp = (ServerRequestVote *)object; (void)pp;
+    ServerRequestVoteMsg *pp = (ServerRequestVoteMsg *)object; (void)pp;
     switch (field) {
-        case 0: pp->setTerm(string2long(value)); return true;
-        case 1: pp->setCandidateId(string2long(value)); return true;
-        case 2: pp->setLastLogIndex(string2long(value)); return true;
-        case 3: pp->setLastLogTerm(string2long(value)); return true;
+        case 0: pp->setSource(string2long(value)); return true;
+        case 1: pp->setTerm(string2long(value)); return true;
+        case 2: pp->setCandidateId(string2long(value)); return true;
+        case 3: pp->setLastLogIndex(string2long(value)); return true;
+        case 4: pp->setLastLogTerm(string2long(value)); return true;
         default: return false;
     }
 }
 
-const char *ServerRequestVoteDescriptor::getFieldStructName(int field) const
+const char *ServerRequestVoteMsgDescriptor::getFieldStructName(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -503,7 +523,7 @@ const char *ServerRequestVoteDescriptor::getFieldStructName(int field) const
     };
 }
 
-void *ServerRequestVoteDescriptor::getFieldStructValuePointer(void *object, int field, int i) const
+void *ServerRequestVoteMsgDescriptor::getFieldStructValuePointer(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -511,7 +531,7 @@ void *ServerRequestVoteDescriptor::getFieldStructValuePointer(void *object, int 
             return basedesc->getFieldStructValuePointer(object, field, i);
         field -= basedesc->getFieldCount();
     }
-    ServerRequestVote *pp = (ServerRequestVote *)object; (void)pp;
+    ServerRequestVoteMsg *pp = (ServerRequestVoteMsg *)object; (void)pp;
     switch (field) {
         default: return nullptr;
     }

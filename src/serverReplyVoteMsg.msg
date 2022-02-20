@@ -13,9 +13,8 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-message ServerRequestVote {
-    int term;	//candidate’s term
-	int candidateId;	//candidate requesting vote
-	int lastLogIndex;	// index of candidate’s last log entry
-	int lastLogTerm;	// term of candidate’s last log entry
+message ServerReplyVoteMsg {
+    int source;			// address of the sender server
+    int term;			// current term of the replying server (for candidate to update itself)
+    bool voteGranted;	// true means candidate received vote
 }
