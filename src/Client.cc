@@ -63,8 +63,8 @@ void Client::initialize()
     // client's attributes to watch during simulation
 
     if (getIndex() == 0){
-        cMessage *timer = new cMessage("timer");
-        scheduleAt(simTime()+par("sendIaTime").doubleValue(), timer);
+        requestMsgTimeoutEvent = new cMessage("requestMsgTimeoutEvent");
+        scheduleAt(simTime()+par("sendIaTime").doubleValue()+100, requestMsgTimeoutEvent);
     }
 
 }

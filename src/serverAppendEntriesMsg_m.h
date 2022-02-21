@@ -1,9 +1,9 @@
 //
-// Generated file, do not edit! Created by nedtool 5.6 from appendEntriesMsg.msg.
+// Generated file, do not edit! Created by nedtool 5.6 from serverAppendEntriesMsg.msg.
 //
 
-#ifndef __APPENDENTRIESMSG_M_H
-#define __APPENDENTRIESMSG_M_H
+#ifndef __SERVERAPPENDENTRIESMSG_M_H
+#define __SERVERAPPENDENTRIESMSG_M_H
 
 #if defined(__clang__)
 #  pragma clang diagnostic ignored "-Wreserved-id-macro"
@@ -24,43 +24,42 @@ typedef std::list<_logEntry> logList;
 // }}
 
 /**
- * Class generated from <tt>appendEntriesMsg.msg:26</tt> by nedtool.
+ * Class generated from <tt>serverAppendEntriesMsg.msg:26</tt> by nedtool.
  * <pre>
- * message AppendEntriesMsg
+ * message ServerAppendEntriesMsg
  * {
  *     int term;			// leader’s term
  *     int leaderId;		// so follower can redirect clients
  *     int prevLogIndex; 	// index of log entry immediately preceding new ones
  *     int prevLogTerm; 	// term of prevLogIndex entry
- *     logList entries[];  // log entries to store (empty for heartbeat; may send more than one for efficiency)
+ *     logList entries;  // log entries to store (empty for heartbeat; may send more than one for efficiency)
  *     int leaderCommit;	// Leader’s commitIndex
  * }
  * </pre>
  */
-class AppendEntriesMsg : public ::omnetpp::cMessage
+class ServerAppendEntriesMsg : public ::omnetpp::cMessage
 {
   protected:
     int term;
     int leaderId;
     int prevLogIndex;
     int prevLogTerm;
-    logList *entries; // array ptr
-    unsigned int entries_arraysize;
+    logList entries;
     int leaderCommit;
 
   private:
-    void copy(const AppendEntriesMsg& other);
+    void copy(const ServerAppendEntriesMsg& other);
 
   protected:
     // protected and unimplemented operator==(), to prevent accidental usage
-    bool operator==(const AppendEntriesMsg&);
+    bool operator==(const ServerAppendEntriesMsg&);
 
   public:
-    AppendEntriesMsg(const char *name=nullptr, short kind=0);
-    AppendEntriesMsg(const AppendEntriesMsg& other);
-    virtual ~AppendEntriesMsg();
-    AppendEntriesMsg& operator=(const AppendEntriesMsg& other);
-    virtual AppendEntriesMsg *dup() const override {return new AppendEntriesMsg(*this);}
+    ServerAppendEntriesMsg(const char *name=nullptr, short kind=0);
+    ServerAppendEntriesMsg(const ServerAppendEntriesMsg& other);
+    virtual ~ServerAppendEntriesMsg();
+    ServerAppendEntriesMsg& operator=(const ServerAppendEntriesMsg& other);
+    virtual ServerAppendEntriesMsg *dup() const override {return new ServerAppendEntriesMsg(*this);}
     virtual void parsimPack(omnetpp::cCommBuffer *b) const override;
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
@@ -73,18 +72,16 @@ class AppendEntriesMsg : public ::omnetpp::cMessage
     virtual void setPrevLogIndex(int prevLogIndex);
     virtual int getPrevLogTerm() const;
     virtual void setPrevLogTerm(int prevLogTerm);
-    virtual void setEntriesArraySize(unsigned int size);
-    virtual unsigned int getEntriesArraySize() const;
-    virtual logList& getEntries(unsigned int k);
-    virtual const logList& getEntries(unsigned int k) const {return const_cast<AppendEntriesMsg*>(this)->getEntries(k);}
-    virtual void setEntries(unsigned int k, const logList& entries);
+    virtual logList& getEntries();
+    virtual const logList& getEntries() const {return const_cast<ServerAppendEntriesMsg*>(this)->getEntries();}
+    virtual void setEntries(const logList& entries);
     virtual int getLeaderCommit() const;
     virtual void setLeaderCommit(int leaderCommit);
 };
 
-inline void doParsimPacking(omnetpp::cCommBuffer *b, const AppendEntriesMsg& obj) {obj.parsimPack(b);}
-inline void doParsimUnpacking(omnetpp::cCommBuffer *b, AppendEntriesMsg& obj) {obj.parsimUnpack(b);}
+inline void doParsimPacking(omnetpp::cCommBuffer *b, const ServerAppendEntriesMsg& obj) {obj.parsimPack(b);}
+inline void doParsimUnpacking(omnetpp::cCommBuffer *b, ServerAppendEntriesMsg& obj) {obj.parsimUnpack(b);}
 
 
-#endif // ifndef __APPENDENTRIESMSG_M_H
+#endif // ifndef __SERVERAPPENDENTRIESMSG_M_H
 

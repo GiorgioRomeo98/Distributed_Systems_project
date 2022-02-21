@@ -10,9 +10,10 @@
 #include <omnetpp.h>
 
 #include "logEntry.h"
+#include "serverState.h"
 #include "serverRequestVoteMsg_m.h"
 #include "serverReplyVoteMsg_m.h"
-#include "serverState.h"
+#include "serverAppendEntriesMsg_m.h"
 
 using namespace omnetpp;
 
@@ -31,7 +32,12 @@ class Server: public cSimpleModule
     simtime_t electionTimeout;  // timeout to pass from FOLLOWER state towards CANDIDATE state
     cMessage *electionTimeoutEvent;  // holds pointer to the electionTimeout self-message
 
+    simtime_t heartbitTimeout;
+    cMessage *heartbitTimeoutEvent;
+
     ServerRequestVoteMsg *requestVoteMsg;
+    ServerAppendEntriesMsg * appendEntriesMsg;
+
 
     // Persistent state on each server
     int currentTerm = 0; //latest term server has seen (initialized to 0 on first boot, increases monotonically)
@@ -57,12 +63,15 @@ class Server: public cSimpleModule
     void forwardMessage(cMessage *msg);
     bool appendEntries(int term, int leaderId, int prevLogIndex, int prevLogTerm, int entries[], int leaderCommit);
     void handleElectionTimeoutEvent();
+    void handleLeaderHeartbitTimeoutEvent();
     void handleRequestVoteMsg(ServerRequestVoteMsg *requestVoteMsg);
     void handleReplyVoteMsg(ServerReplyVoteMsg *replyVoteMsg);
+    void handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg);
     void sendRequestVoteMsg();
     void sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg);
-    void handleElection();
+    void passToFollowerState(int updatedTerm);
     ServerRequestVoteMsg *generateRequestVoteMsg();
+    ServerAppendEntriesMsg *generateAppendEntriesMsg();
 };
 
 // The module class needs to be registered with OMNeT++
@@ -72,7 +81,7 @@ Define_Module(Server);
 
 Server::Server()
 {
-    electionTimeoutEvent = requestVoteMsg = nullptr;
+    electionTimeoutEvent = heartbitTimeoutEvent = requestVoteMsg = nullptr;
 }
 
 
@@ -80,6 +89,7 @@ Server::Server()
 Server::~Server()
 {
     cancelAndDelete(electionTimeoutEvent);
+    cancelAndDelete(heartbitTimeoutEvent);
     delete(requestVoteMsg);
 
 }
@@ -90,11 +100,14 @@ void Server::initialize()
 {
     // Initialize is called at the beginning of the simulation.
     servers_number = par("servers_number");
-    electionTimeout = normal(5.0,1.0);
-    electionTimeoutEvent = new cMessage("electionTimeoutEvent");
     nextIndex.resize(servers_number, 1);
     matchIndex.resize(servers_number, 0);
 
+    // Timeouts
+    electionTimeout = normal(5.0,1.0);
+    electionTimeoutEvent = new cMessage("electionTimeoutEvent");
+    heartbitTimeout = 1;
+    heartbitTimeoutEvent = new cMessage("heartbitTimeoutEvent");
 
     // server's attributes to watch during simulation
     WATCH(state);
@@ -124,10 +137,16 @@ void Server::handleMessage(cMessage *msg)
     // The handleMessage() method is called whenever a message arrives at the module.
     if (msg == electionTimeoutEvent)
         handleElectionTimeoutEvent();
+    else if (msg == heartbitTimeoutEvent)
+        handleLeaderHeartbitTimeoutEvent();
     else if (dynamic_cast<ServerRequestVoteMsg *>(msg))
         handleRequestVoteMsg((ServerRequestVoteMsg *) msg);
     else if (dynamic_cast<ServerReplyVoteMsg *>(msg))
         handleReplyVoteMsg((ServerReplyVoteMsg *) msg);
+    else if (dynamic_cast<ServerAppendEntriesMsg *>(msg))
+        handleAppendEntriesMsg((ServerAppendEntriesMsg *) msg);
+    else
+        delete msg;
 
 }
 
@@ -147,20 +166,18 @@ void Server::handleElectionTimeoutEvent()
 }
 
 
-
+// Server receives a ServerRequestVoteMsg
 void Server::handleRequestVoteMsg(ServerRequestVoteMsg *requestVoteMsg)
 {
-    if (requestVoteMsg->getTerm() > currentTerm){
-        state = FOLLOWER;
-        votedFor = -1;
-        votesNumber = 0;
-    }
+    if (requestVoteMsg->getTerm() > currentTerm)
+        passToFollowerState(requestVoteMsg->getTerm());
+
     sendReplyVoteMsg((ServerRequestVoteMsg *) requestVoteMsg);
     delete requestVoteMsg;
 }
 
 
-
+// Server receives a ServerReplyVoteMsg
 void Server::handleReplyVoteMsg(ServerReplyVoteMsg *replyVoteMsg)
 {
     if (replyVoteMsg->getVoteGranted() and state == CANDIDATE){
@@ -174,7 +191,7 @@ void Server::handleReplyVoteMsg(ServerReplyVoteMsg *replyVoteMsg)
             votedFor = -1;
             votesNumber = 0;
             cancelEvent(electionTimeoutEvent);
-            handleElection();
+            handleLeaderHeartbitTimeoutEvent();
         }
     }
     delete replyVoteMsg;
@@ -182,16 +199,43 @@ void Server::handleReplyVoteMsg(ServerReplyVoteMsg *replyVoteMsg)
 
 
 
-void Server::handleElection()
+void Server::handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
+    // check if it is a leader heartbit message (logEntries[] should be empty)
+    if (appendEntriesMsg->getEntries().empty())
+        EV << "Server_" << getIndex() << " received heartbit message " << appendEntriesMsg << "\n";
+        if (appendEntriesMsg->getTerm() >= currentTerm) //CHECK >= SIGN
+            passToFollowerState(appendEntriesMsg->getTerm());
+    delete (appendEntriesMsg);
 
 }
 
 
 
-// Invoked by leader to replicate log entries (§5.3); also used as heartbeat
+// Leaders send periodic heartbeats (AppendEntriesMsgs that carry no log entries) to all followers in order to maintain their authority.
+void Server::handleLeaderHeartbitTimeoutEvent()
+{
+    ServerAppendEntriesMsg *heartbitAppendEntries = generateAppendEntriesMsg();
+
+    for (int i = 0; i < servers_number; i++)
+        if (i != getIndex()){
+            EV << "Forwarding message " << heartbitAppendEntries << " towards server_" << i << "\n";
+            // Duplicate message and send the copy
+            send((ServerAppendEntriesMsg *)heartbitAppendEntries->dup(), "gate$o", i);
+        }
+    scheduleAt(simTime()+heartbitTimeout, heartbitTimeoutEvent);
+
+    delete heartbitAppendEntries;
+}
+
+
+
+// Invoked by leader to replicate log entries; also used as heartbeat
 bool Server::appendEntries(int term, int leaderId, int prevLogIndex, int prevLogTerm, int entries[], int leaderCommit)
 {
+
+
+
     return true;
 }
 
@@ -199,6 +243,8 @@ bool Server::appendEntries(int term, int leaderId, int prevLogIndex, int prevLog
 // Invoked by candidates to gather votes
 void Server::sendRequestVoteMsg()
 {
+    // to free memory
+    delete requestVoteMsg;
     requestVoteMsg = generateRequestVoteMsg();
 
     for (int i = 0; i < servers_number; i++)
@@ -211,24 +257,6 @@ void Server::sendRequestVoteMsg()
 
 
 
-ServerRequestVoteMsg *Server::generateRequestVoteMsg()
-{
-    char msgName[40];
-    sprintf(msgName, "requestVote_%d from server_%d", currentTerm, getIndex());
-    ServerRequestVoteMsg *msg = new ServerRequestVoteMsg(msgName);
-
-    // assign source and destination address to the message
-    msg->setSource(getIndex());
-    msg->setTerm(currentTerm);
-    msg->setCandidateId(getIndex());
-    msg->setLastLogIndex(-1);
-    msg->setLastLogTerm(-1);
-
-    return msg;
-}
-
-
-
 void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
 {
     char msgName[40];
@@ -236,16 +264,12 @@ void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
     ServerReplyVoteMsg *replyVoteMsg = new ServerReplyVoteMsg(msgName);
 
     int sourceTerm = requestVoteMsg->getTerm();
-    /*if (sourceTerm > currentTerm and state != FOLLOWER){
-        state = FOLLOWER;
-        votedFor = -1;
-        votesNumber = 0;
-        //scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
-        return;
-    }*/
+    /*if (sourceTerm > currentTerm and state != FOLLOWER)
+        passToFollowerState(sourceTerm);
+    */
 
     bool voteGranted = false;
-    if (requestVoteMsg->getTerm() >= currentTerm){  //CHECK THE >= SIGN
+    if (sourceTerm >= currentTerm){  //CHECK THE >= SIGN
         if ((votedFor == -1 or votedFor == requestVoteMsg->getCandidateId()) /*and candidate’s log is at least as up-to-date as receiver’s log, grant vote*/)
             voteGranted = true;
     }
@@ -261,4 +285,54 @@ void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
     send(replyVoteMsg, "gate$o", dest);
 }
 
+
+
+void Server::passToFollowerState(int updatedTerm)
+{
+    state = FOLLOWER;
+    currentTerm = updatedTerm;
+    votedFor = -1;
+    votesNumber = 0;
+    cancelEvent(electionTimeoutEvent);
+    scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
+
+}
+
+
+
+ServerRequestVoteMsg *Server::generateRequestVoteMsg()
+{
+    char msgName[40];
+    sprintf(msgName, "requestVote_%d from server_%d", currentTerm, getIndex());
+    ServerRequestVoteMsg *msg = new ServerRequestVoteMsg(msgName);
+
+    // assign values to message fields
+    msg->setSource(getIndex());
+    msg->setTerm(currentTerm);
+    msg->setCandidateId(getIndex());
+    msg->setLastLogIndex(-1);
+    msg->setLastLogTerm(-1);
+
+    return msg;
+}
+
+
+
+ServerAppendEntriesMsg *Server::generateAppendEntriesMsg()
+{
+    char msgName[40];
+    //CHANGE HEARTBIT
+    sprintf(msgName, "heartbit_%d from server_%d", currentTerm, getIndex());
+    ServerAppendEntriesMsg *msg = new ServerAppendEntriesMsg(msgName);
+
+    // assign values to message fields
+    msg->setTerm(currentTerm);
+    msg->setLeaderId(getIndex());
+    msg->setPrevLogIndex(-1);
+    msg->setPrevLogTerm(-1);
+    //msg->entries;
+    msg->setLeaderCommit(commitIndex);
+
+    return msg;
+}
 
