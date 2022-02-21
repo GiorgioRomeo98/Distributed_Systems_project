@@ -7,15 +7,17 @@
 
 #include <omnetpp.h>
 #include "clientRequestMsg_m.h"
+#include "serverReplyClientRequestMsg_m.h"
 
 using namespace omnetpp;
 
 class Client: public cSimpleModule
 {
   private:
-    int addr;   // client source address
-    int seq;    // message sequence number
+    int addr;           // client source address
+    int seq;            // message sequence number
     int servers_number; // total number of servers
+    int serverLeader;   // address of the most recent leader
 
     Command currentCommand;
 
@@ -30,9 +32,10 @@ class Client: public cSimpleModule
   protected:
     virtual void initialize() override;
     virtual void handleMessage(cMessage *msg) override;
-    ClientRequestMsg *generateNewMessage();
+    void handleRequestMsgTimeoutEvent(cMessage *timeout);
+    void handleServerReplyClientRequestMsg(ServerReplyClientRequestMsg *serverReplyClientRequestMsg);
     void sendRequest(ClientRequestMsg * msg);
-    void processReply(cMessage *msg);
+    ClientRequestMsg *generateRequestMsg();
 };
 
 Define_Module(Client);
@@ -57,6 +60,7 @@ void Client::initialize()
     addr = getIndex();
     seq = 0;
     servers_number = par("servers_number");
+    serverLeader = -1;
 
     WATCH(currentCommand);
 
@@ -64,33 +68,80 @@ void Client::initialize()
 
     if (getIndex() == 0){
         requestMsgTimeoutEvent = new cMessage("requestMsgTimeoutEvent");
-        scheduleAt(simTime()+par("sendIaTime").doubleValue()+100, requestMsgTimeoutEvent);
+        scheduleAt(simTime()+par("sendIaTime").doubleValue(), requestMsgTimeoutEvent);
     }
 
 }
 
 void Client::handleMessage(cMessage *msg)
 {
-    currentRequestMsg = generateNewMessage();
-    sendRequest(currentRequestMsg);
+    if (msg == requestMsgTimeoutEvent)
+        handleRequestMsgTimeoutEvent(msg);
+    else if (dynamic_cast<ServerReplyClientRequestMsg *>(msg))
+        handleServerReplyClientRequestMsg((ServerReplyClientRequestMsg *) msg);
+    else delete msg;
 }
 
-ClientRequestMsg * Client::generateNewMessage()
+
+
+void Client::handleRequestMsgTimeoutEvent(cMessage *timeout)
 {
-    // send a request to one of the servers randomly
-    int server_addr = intuniform(0, servers_number-1);
+    //free memory and generate new request message
+    delete currentRequestMsg;
+    currentRequestMsg = generateRequestMsg();
+
+    sendRequest(currentRequestMsg);
+
+    // set again the timeout to send a new request
+    // TODO: DIFFER TIMEOUT FOR A NEW REQUEST AND A TIMEOUT FOR RESENDING AN OLD REQUEST WITH NO REPLIES
+
+    scheduleAt(simTime()+par("sendIaTime").doubleValue(), requestMsgTimeoutEvent);
+}
+
+
+
+void Client::handleServerReplyClientRequestMsg(ServerReplyClientRequestMsg *serverReplyClientRequestMsg)
+{
+    // most recent leader known by the server that replied to the client request
+    int replyMostRecentLeader = serverReplyClientRequestMsg->getLeaderAddr();
+
+    // destination server's address of the last client request message
+    int oldDestServer = currentRequestMsg->getDestAddr();
+
+    if (oldDestServer != replyMostRecentLeader){
+        serverLeader = replyMostRecentLeader;
+        EV << "client_" << getIndex() << " sent request to the wrong server (server_ " << oldDestServer << " was not the leader)\n";
+        //free memory and generate new request message
+        delete currentRequestMsg;
+        currentRequestMsg = generateRequestMsg();
+        sendRequest(currentRequestMsg);
+    }else{
+        if (serverLeader == -1)
+            serverLeader = replyMostRecentLeader;
+        /* TODO: PROCESS RESULT */ bubble("Processing result");
+    }
+
+}
+
+
+ClientRequestMsg * Client::generateRequestMsg()
+{
+    int serverAddr = serverLeader;
+    if (serverLeader == -1)
+        // send a request to one of the servers randomly
+        serverAddr = intuniform(0, servers_number-1);
 
     // Generate a message with a different name every time.
     char msgName[40];
-    sprintf(msgName, "request_%d: client_%d --> server_%d", ++seq, addr, server_addr);
+    sprintf(msgName, "request_%d", ++seq);
     ClientRequestMsg *msg = new ClientRequestMsg(msgName);
 
     // assign source and destination address to the message
-    msg->setSource_addr(addr);
-    msg->setDestination_addr(server_addr);
+    msg->setSourceAddr(addr);
+    msg->setDestAddr(serverAddr);
 
     // assign command to the message
-    currentCommand = Command('x',5);
+    currentCommand = Command('a' + rand()%5, rand()%10);
     msg->setCommand(currentCommand);
 
     return msg;
@@ -102,20 +153,16 @@ void Client::sendRequest(ClientRequestMsg * msg)
     ClientRequestMsg *copy = (ClientRequestMsg *)msg->dup();
 
 
-    EV << "Forwarding message " << msg << " with command: " << currentCommand.var << " <-- " << currentCommand.value << "\n";
+    EV << "client_" << getIndex() << " forwarding message " << msg << " to server_" << copy->getDestAddr()
+       <<" with command: " << currentCommand.var << " <-- " << currentCommand.value << "\n";
     /*
-    * If Client can send a list og commands (for sake of simplicity, just 1 command as suggested from RAFT paper)
+    * If Client can send a list of commands (for sake of simplicity, just 1 command as suggested from RAFT paper)
     for (auto const &cmd : msg->getCommand())
         EV << cmd.var << " <-- " << cmd.value << "; ";
     EV << "\n";
     */
 
     send(copy, "gate$o");
-}
-
-void Client::processReply(cMessage *msg)
-{
-    delete msg;
 }
 
 

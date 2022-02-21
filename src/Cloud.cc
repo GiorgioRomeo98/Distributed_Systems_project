@@ -8,6 +8,7 @@
 
 #include <omnetpp.h>
 #include "clientRequestMsg_m.h"
+#include "serverReplyClientRequestMsg_m.h"
 
 using namespace omnetpp;
 
@@ -22,6 +23,8 @@ class Cloud : public cSimpleModule
   protected:
     virtual void initialize() override;
     virtual void handleMessage(cMessage *msg) override;
+    void handleClientRequestMsg(ClientRequestMsg *clientRequestMsg);
+    void handleServerReplyClientRequestMsg(ServerReplyClientRequestMsg *replyClientRequestMsg);
 };
 
 Define_Module(Cloud);
@@ -33,12 +36,32 @@ void Cloud::initialize()
 
 void Cloud::handleMessage(cMessage *msg)
 {
+    if (dynamic_cast<ClientRequestMsg *>(msg))
+        handleClientRequestMsg((ClientRequestMsg *) msg);
+    else if (dynamic_cast<ServerReplyClientRequestMsg *>(msg))
+        handleServerReplyClientRequestMsg((ServerReplyClientRequestMsg *) msg);
+
+}
+
+void Cloud::handleClientRequestMsg(ClientRequestMsg * clientRequestMsg)
+{
     // determine destination address
-    ClientRequestMsg *requestMsg = check_and_cast<ClientRequestMsg *>(msg);
-    int dest = requestMsg->getDestination_addr();
-    EV << "Relaying message to server with addr=" << dest << endl;
+    int dest = clientRequestMsg->getDestAddr();
+    EV << "Relaying message to server_" << dest << endl;
 
     // send msg to destination after the delay
-    sendDelayed(requestMsg, propDelay, "gate_s$o", dest);
+    sendDelayed(clientRequestMsg, propDelay, "gate_s$o", dest);
+}
+
+
+
+void Cloud::handleServerReplyClientRequestMsg(ServerReplyClientRequestMsg *replyClientRequestMsg)
+{
+    // determine destination address
+    int dest = replyClientRequestMsg->getDestAddr();
+    EV << "Relaying message to client_" << dest << endl;
+
+    // send msg to destination after the delay
+    sendDelayed(replyClientRequestMsg, propDelay, "gate_c$o", dest);
 }
 

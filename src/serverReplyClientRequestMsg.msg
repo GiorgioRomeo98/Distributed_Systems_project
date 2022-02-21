@@ -13,22 +13,9 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-
-
-// In addition to announcing types to the message compiler, their C++ declarations also need to be available
-// at compile time so that the generated code will actually compile.
-cplusplus {{
-#include "command.h"
-typedef _command Cmd;
-}};
-
-
-// To use a C++ type (class, struct a typedef) defined outside the msg file, that type needs to be announced to the message compiler.
-class noncobject Cmd;
-
-
-message ClientRequestMsg {
-    int sourceAddr;		// address of the client that sent the request
-    int destAddr;		// address of the server
-    Cmd command;		// command to process
+message ServerReplyClientRequestMsg {
+    int sourceAddr;		// address of the server replying
+    int destAddr;		// address of the client that sent the request
+    int leaderAddr;		// if client request is sent to a FOLLOWER server, it replies with the address of the most recent leader it knows. 
+    int result;			// to simulate the result response of the leader to the client request message
 }

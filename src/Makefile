@@ -36,6 +36,8 @@ OBJS = \
     $O/Server.o \
     $O/clientRequestMsg_m.o \
     $O/serverAppendEntriesMsg_m.o \
+    $O/serverReplyAppendEntriesMsg_m.o \
+    $O/serverReplyClientRequestMsg_m.o \
     $O/serverReplyVoteMsg_m.o \
     $O/serverRequestVoteMsg_m.o
 
@@ -43,6 +45,8 @@ OBJS = \
 MSGFILES = \
     clientRequestMsg.msg \
     serverAppendEntriesMsg.msg \
+    serverReplyAppendEntriesMsg.msg \
+    serverReplyClientRequestMsg.msg \
     serverReplyVoteMsg.msg \
     serverRequestVoteMsg.msg
 

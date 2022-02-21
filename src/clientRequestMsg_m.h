@@ -28,17 +28,17 @@ typedef _command Cmd;
  * <pre>
  * message ClientRequestMsg
  * {
- *     int source_addr;
- *     int destination_addr;
- *     Cmd command;
+ *     int sourceAddr;		// address of the client that sent the request
+ *     int destAddr;		// address of the server
+ *     Cmd command;		// command to process
  * }
  * </pre>
  */
 class ClientRequestMsg : public ::omnetpp::cMessage
 {
   protected:
-    int source_addr;
-    int destination_addr;
+    int sourceAddr;
+    int destAddr;
     Cmd command;
 
   private:
@@ -58,10 +58,10 @@ class ClientRequestMsg : public ::omnetpp::cMessage
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
     // field getter/setter methods
-    virtual int getSource_addr() const;
-    virtual void setSource_addr(int source_addr);
-    virtual int getDestination_addr() const;
-    virtual void setDestination_addr(int destination_addr);
+    virtual int getSourceAddr() const;
+    virtual void setSourceAddr(int sourceAddr);
+    virtual int getDestAddr() const;
+    virtual void setDestAddr(int destAddr);
     virtual Cmd& getCommand();
     virtual const Cmd& getCommand() const {return const_cast<ClientRequestMsg*>(this)->getCommand();}
     virtual void setCommand(const Cmd& command);

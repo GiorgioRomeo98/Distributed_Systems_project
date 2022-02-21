@@ -14,6 +14,8 @@
 #include "serverRequestVoteMsg_m.h"
 #include "serverReplyVoteMsg_m.h"
 #include "serverAppendEntriesMsg_m.h"
+#include "clientRequestMsg_m.h"
+#include "serverReplyClientRequestMsg_m.h"
 
 using namespace omnetpp;
 
@@ -40,10 +42,12 @@ class Server: public cSimpleModule
 
 
     // Persistent state on each server
-    int currentTerm = 0; //latest term server has seen (initialized to 0 on first boot, increases monotonically)
-    int votedFor = -1; //candidateId that received vote in current term (or -1 if none)
+    int currentTerm = 0;        //latest term server has seen (initialized to 0 on first boot, increases monotonically)
+    int currentLeader = -1;     //index of the current leader
+    int votedFor = -1;          //candidateId that received vote in current term (or -1 if none)
     int votesNumber = 0;
-    std::list<LogEntry> log_entries; //each entry contains command for state machine, and term when entry was received by leader (first index is 1)
+    std::list<LogEntry> logEntries;     //each entry contains commanda for state machine, and term when entry was received by leader (first index is 1)
+    std::list<LogEntry> stateMachine;   //commands applied to the server's state machine
 
     // Volatile state on each server
     int commitIndex = 0; //index of highest log entry known to be committed (initialized to 0, increases monotonically)
@@ -67,6 +71,7 @@ class Server: public cSimpleModule
     void handleRequestVoteMsg(ServerRequestVoteMsg *requestVoteMsg);
     void handleReplyVoteMsg(ServerReplyVoteMsg *replyVoteMsg);
     void handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg);
+    void handleClientRequestMsg(ClientRequestMsg *clientRequestMsg);
     void sendRequestVoteMsg();
     void sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg);
     void passToFollowerState(int updatedTerm);
@@ -100,21 +105,23 @@ void Server::initialize()
 {
     // Initialize is called at the beginning of the simulation.
     servers_number = par("servers_number");
-    nextIndex.resize(servers_number, 1);
+    nextIndex.resize(servers_number, logEntries.size()+1);
     matchIndex.resize(servers_number, 0);
 
     // Timeouts
     electionTimeout = normal(5.0,1.0);
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
-    heartbitTimeout = 1;
+    heartbitTimeout = 2;
     heartbitTimeoutEvent = new cMessage("heartbitTimeoutEvent");
 
     // server's attributes to watch during simulation
     WATCH(state);
     WATCH(currentTerm);
+    WATCH(currentLeader);
     WATCH(votedFor);
     WATCH(votesNumber);
-    WATCH_LIST(log_entries);
+    WATCH_LIST(logEntries);
+    WATCH_LIST(stateMachine);
     WATCH(commitIndex);
     WATCH(lastApplied);
     WATCH_VECTOR(nextIndex);
@@ -145,6 +152,8 @@ void Server::handleMessage(cMessage *msg)
         handleReplyVoteMsg((ServerReplyVoteMsg *) msg);
     else if (dynamic_cast<ServerAppendEntriesMsg *>(msg))
         handleAppendEntriesMsg((ServerAppendEntriesMsg *) msg);
+    else if (dynamic_cast<ClientRequestMsg *>(msg))
+        handleClientRequestMsg((ClientRequestMsg *) msg);
     else
         delete msg;
 
@@ -201,13 +210,37 @@ void Server::handleReplyVoteMsg(ServerReplyVoteMsg *replyVoteMsg)
 
 void Server::handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
-    // check if it is a leader heartbit message (logEntries[] should be empty)
+    currentLeader = appendEntriesMsg->getLeaderId();
+    // check if it is a leader heartbit message (entries should be empty)
     if (appendEntriesMsg->getEntries().empty())
         EV << "Server_" << getIndex() << " received heartbit message " << appendEntriesMsg << "\n";
         if (appendEntriesMsg->getTerm() >= currentTerm) //CHECK >= SIGN
             passToFollowerState(appendEntriesMsg->getTerm());
     delete (appendEntriesMsg);
 
+}
+
+
+void Server::handleClientRequestMsg(ClientRequestMsg *clientRequestMsg)
+{
+    int clientAddr = clientRequestMsg->getSourceAddr();
+
+    char msgName[40];
+    sprintf(msgName, "reply_%d from server_%d to client_%d request", currentTerm, getIndex(), clientAddr);
+    ServerReplyClientRequestMsg *replyClientRequestMsg = new ServerReplyClientRequestMsg(msgName);
+
+    replyClientRequestMsg->setSourceAddr(getIndex());
+    replyClientRequestMsg->setDestAddr(clientAddr);
+
+    if (currentLeader != -1)
+        if (currentLeader != getIndex()){
+            EV << "server_" << getIndex() << " received a client request even if it is not the Leader...server_" << getIndex()
+               << " forwarding leader address to client_" << clientAddr << "\n";
+            replyClientRequestMsg->setLeaderAddr(currentLeader);
+        }
+    send((ClientRequestMsg *)replyClientRequestMsg, "gate$o", getIndex());
+
+    delete clientRequestMsg;
 }
 
 
