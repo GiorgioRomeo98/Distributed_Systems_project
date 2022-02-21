@@ -153,7 +153,7 @@ void Client::sendRequest(ClientRequestMsg * msg)
     ClientRequestMsg *copy = (ClientRequestMsg *)msg->dup();
 
 
-    EV << "client_" << getIndex() << " forwarding message " << msg << " to server_" << copy->getDestAddr()
+    EV << "client_" << getIndex() << " forwarding message " << msg << " towards server_" << copy->getDestAddr()
        <<" with command: " << currentCommand.var << " <-- " << currentCommand.value << "\n";
     /*
     * If Client can send a list of commands (for sake of simplicity, just 1 command as suggested from RAFT paper)

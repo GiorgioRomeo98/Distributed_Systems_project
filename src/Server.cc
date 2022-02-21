@@ -194,6 +194,7 @@ void Server::handleReplyVoteMsg(ServerReplyVoteMsg *replyVoteMsg)
         int majority = ceil((double)servers_number/2);
         if (votesNumber >= majority){
             state = LEADER;
+            currentLeader = getIndex();
             bubble("Now I am the leader!");
             EV << "server_" << getIndex() << " is the new leader after obtaining " << votesNumber << " votes\n";
             // re-initializing variables
@@ -212,12 +213,14 @@ void Server::handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
     currentLeader = appendEntriesMsg->getLeaderId();
     // check if it is a leader heartbit message (entries should be empty)
-    if (appendEntriesMsg->getEntries().empty())
-        EV << "Server_" << getIndex() << " received heartbit message " << appendEntriesMsg << "\n";
-        if (appendEntriesMsg->getTerm() >= currentTerm) //CHECK >= SIGN
+    if (appendEntriesMsg->getEntries().empty()){
+        EV << "Server_" << getIndex() << " received heartbit message " << appendEntriesMsg
+           << " from server_" << appendEntriesMsg->getLeaderId() << "\n";
+        if (appendEntriesMsg->getTerm() >= currentTerm) // TODO: CHECK >= SIGN
             passToFollowerState(appendEntriesMsg->getTerm());
-    delete (appendEntriesMsg);
+    }
 
+    delete (appendEntriesMsg);
 }
 
 
@@ -226,19 +229,24 @@ void Server::handleClientRequestMsg(ClientRequestMsg *clientRequestMsg)
     int clientAddr = clientRequestMsg->getSourceAddr();
 
     char msgName[40];
-    sprintf(msgName, "reply_%d from server_%d to client_%d request", currentTerm, getIndex(), clientAddr);
+    sprintf(msgName, "reply_%d to client_%d request", currentTerm, clientAddr);
     ServerReplyClientRequestMsg *replyClientRequestMsg = new ServerReplyClientRequestMsg(msgName);
 
     replyClientRequestMsg->setSourceAddr(getIndex());
     replyClientRequestMsg->setDestAddr(clientAddr);
 
-    if (currentLeader != -1)
+    if (currentLeader != -1){
         if (currentLeader != getIndex()){
-            EV << "server_" << getIndex() << " received a client request even if it is not the Leader...server_" << getIndex()
-               << " forwarding leader address to client_" << clientAddr << "\n";
-            replyClientRequestMsg->setLeaderAddr(currentLeader);
+            EV << "server_" << getIndex() << " received a request from client_" << clientAddr << " even if it is not the Leader...server_"
+               << getIndex() << " forwarding leader address to client_" << clientAddr << "\n";
+        }else{
+            EV << "server_" << getIndex() << " received a request (command: " << clientRequestMsg->getCommand() << ") "
+               << "from client_" << clientAddr << "...Forwarding the result\n"
+            /* TODO: Compute result */;
         }
-    send((ClientRequestMsg *)replyClientRequestMsg, "gate$o", getIndex());
+        replyClientRequestMsg->setLeaderAddr(currentLeader);
+        send((ClientRequestMsg *)replyClientRequestMsg, "gate$o", getIndex());
+    }
 
     delete clientRequestMsg;
 }
@@ -252,7 +260,7 @@ void Server::handleLeaderHeartbitTimeoutEvent()
 
     for (int i = 0; i < servers_number; i++)
         if (i != getIndex()){
-            EV << "Forwarding message " << heartbitAppendEntries << " towards server_" << i << "\n";
+            EV << "Server_" << getIndex() << " forwarding message " << heartbitAppendEntries << " towards server_" << i << "\n";
             // Duplicate message and send the copy
             send((ServerAppendEntriesMsg *)heartbitAppendEntries->dup(), "gate$o", i);
         }
@@ -282,7 +290,7 @@ void Server::sendRequestVoteMsg()
 
     for (int i = 0; i < servers_number; i++)
         if (i != getIndex()){
-            EV << "Forwarding message " << requestVoteMsg << " towards server_" << i << "\n";
+            EV << "Server_" << getIndex() << " forwarding message " << requestVoteMsg << " towards server_" << i << "\n";
             // Duplicate message and send the copy
             send((ServerRequestVoteMsg *)requestVoteMsg->dup(), "gate$o", i);
         }
@@ -293,7 +301,7 @@ void Server::sendRequestVoteMsg()
 void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
 {
     char msgName[40];
-    sprintf(msgName, "replyVote_%d from server_%d", currentTerm, getIndex());
+    sprintf(msgName, "replyVote_%d", currentTerm);
     ServerReplyVoteMsg *replyVoteMsg = new ServerReplyVoteMsg(msgName);
 
     int sourceTerm = requestVoteMsg->getTerm();
@@ -313,7 +321,7 @@ void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
 
     int dest = requestVoteMsg->getSource();
     // sending the message
-    EV << "Forwarding message " << replyVoteMsg << " towards server_" << dest << "\n";
+    EV << "Server_" << getIndex() << " forwarding message " << replyVoteMsg << " towards server_" << dest << "\n";
     // Duplicate message and send the copy
     send(replyVoteMsg, "gate$o", dest);
 }
@@ -336,7 +344,7 @@ void Server::passToFollowerState(int updatedTerm)
 ServerRequestVoteMsg *Server::generateRequestVoteMsg()
 {
     char msgName[40];
-    sprintf(msgName, "requestVote_%d from server_%d", currentTerm, getIndex());
+    sprintf(msgName, "requestVote_%d", currentTerm);
     ServerRequestVoteMsg *msg = new ServerRequestVoteMsg(msgName);
 
     // assign values to message fields
@@ -355,7 +363,7 @@ ServerAppendEntriesMsg *Server::generateAppendEntriesMsg()
 {
     char msgName[40];
     //CHANGE HEARTBIT
-    sprintf(msgName, "heartbit_%d from server_%d", currentTerm, getIndex());
+    sprintf(msgName, "heartbit_%d", currentTerm);
     ServerAppendEntriesMsg *msg = new ServerAppendEntriesMsg(msgName);
 
     // assign values to message fields
