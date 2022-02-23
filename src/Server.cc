@@ -122,7 +122,7 @@ void Server::initialize()
     matchIndex.resize(servers_number, 0);
 
     // Timeouts
-    electionTimeout = normal(7.0,1.0);
+    electionTimeout = normal(5.0, 1);
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
     heartbeatTimeout = 2;
     heartbeatTimeoutEvent = new cMessage("heartbeatTimeoutEvent");
@@ -232,6 +232,15 @@ void Server::handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 void Server::processAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
     std::list<_logEntry> newLogEntries = appendEntriesMsg->getEntries();
+
+    /*
+     TODO: testing --> to delete
+    EV << "Server_" << getIndex() << "...new entry logs: ";
+    for (std::list<LogEntry>::iterator iter = newLogEntries.begin(); iter != newLogEntries.end(); iter++)
+        EV << (*iter).entryCommand << "; ";
+    EV << "\n";
+    */
+
     std::list<LogEntry>::iterator it = logEntries.begin();
     bool success = true;
     // Reply false if term < currentTerm or log does not contain an entry at prevLogIndex whose term matches prevLogTerm
@@ -444,30 +453,30 @@ ServerRequestVoteMsg *Server::generateRequestVoteMsg()
 ServerAppendEntriesMsg *Server::generateAppendEntriesMsg(bool isLeaderheartbeat, int destServer)
 {
     char msgName[40];
-    if (isLeaderheartbeat)
+    ServerAppendEntriesMsg *msg;
+    if (isLeaderheartbeat){
         sprintf(msgName, "heartbeat_%d", currentTerm);
-    else
+        msg = new ServerAppendEntriesMsg(msgName);
+        // assign values to appendEntries (heartbeat) message fields
+        msg->setTerm(currentTerm);
+        msg->setLeaderId(getIndex());
+    }else{
         sprintf(msgName, "appendEntries_%d", currentTerm);
+        msg = new ServerAppendEntriesMsg(msgName);
 
-    ServerAppendEntriesMsg *msg = new ServerAppendEntriesMsg(msgName);
-
-    // assign values to appendEntries message fields
-    msg->setTerm(currentTerm);
-    msg->setLeaderId(getIndex());
-    msg->setLeaderCommit(commitIndex);
-
-    int PrevLogIndex = nextIndex[destServer];
-    msg->setPrevLogIndex(PrevLogIndex);
-
-    // Initialize iterator to list
-    std::list<LogEntry>::iterator it = logEntries.begin();
-    advance(it, PrevLogIndex);
-    msg->setPrevLogTerm((*it).term);
-    std::list<_logEntry> entries;
-    for(; it != logEntries.end(); it++)
-        entries.push_back(*it);
-    msg->setEntries(entries);
-
+        // assign values to appendEntries message fields
+        msg->setTerm(currentTerm);
+        msg->setLeaderId(getIndex());
+        msg->setLeaderCommit(commitIndex);
+        msg->setPrevLogIndex(nextIndex[destServer]-1);
+        // Initialize iterator to list
+        std::list<LogEntry>::iterator it = logEntries.begin();
+        msg->setPrevLogTerm((*it).term);
+        std::list<_logEntry> entries;
+        for(advance(it, nextIndex[destServer]); it != logEntries.end(); it++)
+            entries.push_back(*it);
+        msg->setEntries(entries);
+    }
     return msg;
 }
 
