@@ -66,7 +66,7 @@ void Client::initialize()
 
     // client's attributes to watch during simulation
 
-    if (getIndex() == 0){
+    if (getIndex() >= 0){   //TODO: fix >=
         requestMsgTimeoutEvent = new cMessage("requestMsgTimeoutEvent");
         scheduleAt(simTime()+par("sendIaTime").doubleValue(), requestMsgTimeoutEvent);
     }
@@ -90,6 +90,7 @@ void Client::handleRequestMsgTimeoutEvent(cMessage *timeout)
     delete currentRequestMsg;
     currentRequestMsg = generateRequestMsg();
 
+    bubble("Sending request");
     sendRequest(currentRequestMsg);
 
     // set again the timeout to send a new request
@@ -110,7 +111,7 @@ void Client::handleServerReplyClientRequestMsg(ServerReplyClientRequestMsg *serv
 
     if (oldDestServer != replyMostRecentLeader){
         serverLeader = replyMostRecentLeader;
-        EV << "client_" << getIndex() << " sent request to the wrong server (server_ " << oldDestServer << " was not the leader)\n";
+        EV << "client_" << getIndex() << " sent request to the wrong server (server_" << oldDestServer << " was not the leader)\n";
         //free memory and generate new request message
         delete currentRequestMsg;
         currentRequestMsg = generateRequestMsg();
@@ -120,6 +121,7 @@ void Client::handleServerReplyClientRequestMsg(ServerReplyClientRequestMsg *serv
             serverLeader = replyMostRecentLeader;
         /* TODO: PROCESS RESULT */ bubble("Processing result");
     }
+    delete serverReplyClientRequestMsg;
 
 }
 
@@ -141,7 +143,7 @@ ClientRequestMsg * Client::generateRequestMsg()
     msg->setDestAddr(serverAddr);
 
     // assign command to the message
-    currentCommand = Command('a' + rand()%5, rand()%10);
+    currentCommand = Command('a' + rand()%26, rand()%10);
     msg->setCommand(currentCommand);
 
     return msg;

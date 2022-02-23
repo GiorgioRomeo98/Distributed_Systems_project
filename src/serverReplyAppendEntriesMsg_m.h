@@ -23,8 +23,8 @@
  * <pre>
  * message ServerReplyAppendEntriesMsg
  * {
- *     int term; 		//currentTerm, for leader to update itself
- *     bool success; 	//true if follower contained entry matching	prevLogIndex and prevLogTerm
+ *     int term; 		// currentTerm, for leader to update itself
+ *     bool success; 	// true if follower contained entry matching	prevLogIndex and prevLogTerm
  * }
  * </pre>
  */
