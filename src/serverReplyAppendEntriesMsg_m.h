@@ -23,6 +23,7 @@
  * <pre>
  * message ServerReplyAppendEntriesMsg
  * {
+ *     int source;		// source address
  *     int term; 		// currentTerm, for leader to update itself
  *     bool success; 	// true if follower contained entry matching	prevLogIndex and prevLogTerm
  * }
@@ -31,6 +32,7 @@
 class ServerReplyAppendEntriesMsg : public ::omnetpp::cMessage
 {
   protected:
+    int source;
     int term;
     bool success;
 
@@ -51,6 +53,8 @@ class ServerReplyAppendEntriesMsg : public ::omnetpp::cMessage
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
     // field getter/setter methods
+    virtual int getSource() const;
+    virtual void setSource(int source);
     virtual int getTerm() const;
     virtual void setTerm(int term);
     virtual bool getSuccess() const;
