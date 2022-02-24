@@ -251,32 +251,31 @@ void Server::processAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
         // If an existing entry conflicts with a new one (same index but different terms), delete the existing entry and all that follow it
         // if the dimension of the logEntries list is less than the smallest index in the new entries the above scenario cannot happens
         // (-1 because there is a marker at position 0)
-        if (logEntries.size()-1 >= newLogEntries.front().index){
-            std::list<LogEntry>::iterator it = logEntries.begin();
-            advance(it, newLogEntries.front().index);
-            bool entriesToDelete = false;
-            for (; it != logEntries.end(); it++){
-                if (!entriesToDelete)
-                    for (std::list<LogEntry>::iterator iter = newLogEntries.begin(); iter != newLogEntries.end(); iter++)
-                        if ((*it).term != (*iter).term){
-                            entriesToDelete = true;
-                            break;
-                        }
-                if (entriesToDelete)
-                    logEntries.erase(it);
+        std::list<LogEntry>::iterator iter = newLogEntries.begin();
+        std::list<LogEntry>::iterator it = logEntries.begin();
+        advance(it, (*iter).index);
+        bool entriesToDelete = false;
+        while (!entriesToDelete and iter != newLogEntries.end() and logEntries.size()-1 >= (*iter).index){
+            if ((*it).term != (*iter).term)
+                entriesToDelete = true;
+            else{
+                it++, iter++;
             }
         }
+        for (; it != logEntries.end(); it++)
+            logEntries.erase(it);
 
         // Append any new entries not already in the log
-        std::list<LogEntry>::iterator iter = newLogEntries.begin();
-        bool isAlreadyInserted = false;
+        iter = newLogEntries.begin();
         it = logEntries.begin();
         advance(it, newLogEntries.front().index);
-        while(!isAlreadyInserted or iter != newLogEntries.end() or logEntries.size() >= (*iter).index){
-            if ((*it).term == (*iter).term)
-                isAlreadyInserted = true;
-            else
+        bool isAlreadyInserted = true;
+        while(isAlreadyInserted and iter != newLogEntries.end() and logEntries.size()-1 >= (*iter).index){
+            if ((*it).term != (*iter).term)
+                isAlreadyInserted = false;
+            else{
                 it++; iter++;
+            }
         }
         for (; iter != newLogEntries.end(); iter++)
             logEntries.push_back(*iter);
