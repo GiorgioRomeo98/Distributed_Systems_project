@@ -183,6 +183,7 @@ ClientRequestMsg::ClientRequestMsg(const char *name, short kind) : ::omnetpp::cM
 {
     this->sourceAddr = 0;
     this->destAddr = 0;
+    this->serialNumber = 0;
 }
 
 ClientRequestMsg::ClientRequestMsg(const ClientRequestMsg& other) : ::omnetpp::cMessage(other)
@@ -206,6 +207,7 @@ void ClientRequestMsg::copy(const ClientRequestMsg& other)
 {
     this->sourceAddr = other.sourceAddr;
     this->destAddr = other.destAddr;
+    this->serialNumber = other.serialNumber;
     this->command = other.command;
 }
 
@@ -214,6 +216,7 @@ void ClientRequestMsg::parsimPack(omnetpp::cCommBuffer *b) const
     ::omnetpp::cMessage::parsimPack(b);
     doParsimPacking(b,this->sourceAddr);
     doParsimPacking(b,this->destAddr);
+    doParsimPacking(b,this->serialNumber);
     doParsimPacking(b,this->command);
 }
 
@@ -222,6 +225,7 @@ void ClientRequestMsg::parsimUnpack(omnetpp::cCommBuffer *b)
     ::omnetpp::cMessage::parsimUnpack(b);
     doParsimUnpacking(b,this->sourceAddr);
     doParsimUnpacking(b,this->destAddr);
+    doParsimUnpacking(b,this->serialNumber);
     doParsimUnpacking(b,this->command);
 }
 
@@ -243,6 +247,16 @@ int ClientRequestMsg::getDestAddr() const
 void ClientRequestMsg::setDestAddr(int destAddr)
 {
     this->destAddr = destAddr;
+}
+
+int ClientRequestMsg::getSerialNumber() const
+{
+    return this->serialNumber;
+}
+
+void ClientRequestMsg::setSerialNumber(int serialNumber)
+{
+    this->serialNumber = serialNumber;
 }
 
 Cmd& ClientRequestMsg::getCommand()
@@ -320,7 +334,7 @@ const char *ClientRequestMsgDescriptor::getProperty(const char *propertyname) co
 int ClientRequestMsgDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 3+basedesc->getFieldCount() : 3;
+    return basedesc ? 4+basedesc->getFieldCount() : 4;
 }
 
 unsigned int ClientRequestMsgDescriptor::getFieldTypeFlags(int field) const
@@ -334,9 +348,10 @@ unsigned int ClientRequestMsgDescriptor::getFieldTypeFlags(int field) const
     static unsigned int fieldTypeFlags[] = {
         FD_ISEDITABLE,
         FD_ISEDITABLE,
+        FD_ISEDITABLE,
         FD_ISCOMPOUND,
     };
-    return (field>=0 && field<3) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<4) ? fieldTypeFlags[field] : 0;
 }
 
 const char *ClientRequestMsgDescriptor::getFieldName(int field) const
@@ -350,9 +365,10 @@ const char *ClientRequestMsgDescriptor::getFieldName(int field) const
     static const char *fieldNames[] = {
         "sourceAddr",
         "destAddr",
+        "serialNumber",
         "command",
     };
-    return (field>=0 && field<3) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<4) ? fieldNames[field] : nullptr;
 }
 
 int ClientRequestMsgDescriptor::findField(const char *fieldName) const
@@ -361,7 +377,8 @@ int ClientRequestMsgDescriptor::findField(const char *fieldName) const
     int base = basedesc ? basedesc->getFieldCount() : 0;
     if (fieldName[0]=='s' && strcmp(fieldName, "sourceAddr")==0) return base+0;
     if (fieldName[0]=='d' && strcmp(fieldName, "destAddr")==0) return base+1;
-    if (fieldName[0]=='c' && strcmp(fieldName, "command")==0) return base+2;
+    if (fieldName[0]=='s' && strcmp(fieldName, "serialNumber")==0) return base+2;
+    if (fieldName[0]=='c' && strcmp(fieldName, "command")==0) return base+3;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -376,9 +393,10 @@ const char *ClientRequestMsgDescriptor::getFieldTypeString(int field) const
     static const char *fieldTypeStrings[] = {
         "int",
         "int",
+        "int",
         "Cmd",
     };
-    return (field>=0 && field<3) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<4) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **ClientRequestMsgDescriptor::getFieldPropertyNames(int field) const
@@ -447,7 +465,8 @@ std::string ClientRequestMsgDescriptor::getFieldValueAsString(void *object, int 
     switch (field) {
         case 0: return long2string(pp->getSourceAddr());
         case 1: return long2string(pp->getDestAddr());
-        case 2: {std::stringstream out; out << pp->getCommand(); return out.str();}
+        case 2: return long2string(pp->getSerialNumber());
+        case 3: {std::stringstream out; out << pp->getCommand(); return out.str();}
         default: return "";
     }
 }
@@ -464,6 +483,7 @@ bool ClientRequestMsgDescriptor::setFieldValueAsString(void *object, int field, 
     switch (field) {
         case 0: pp->setSourceAddr(string2long(value)); return true;
         case 1: pp->setDestAddr(string2long(value)); return true;
+        case 2: pp->setSerialNumber(string2long(value)); return true;
         default: return false;
     }
 }
@@ -477,7 +497,7 @@ const char *ClientRequestMsgDescriptor::getFieldStructName(int field) const
         field -= basedesc->getFieldCount();
     }
     switch (field) {
-        case 2: return omnetpp::opp_typename(typeid(Cmd));
+        case 3: return omnetpp::opp_typename(typeid(Cmd));
         default: return nullptr;
     };
 }
@@ -492,7 +512,7 @@ void *ClientRequestMsgDescriptor::getFieldStructValuePointer(void *object, int f
     }
     ClientRequestMsg *pp = (ClientRequestMsg *)object; (void)pp;
     switch (field) {
-        case 2: return (void *)(&pp->getCommand()); break;
+        case 3: return (void *)(&pp->getCommand()); break;
         default: return nullptr;
     }
 }

@@ -15,20 +15,18 @@ typedef struct _logEntry
 {
     int index;              // index of the log entry
     int term;               // term of the log entry
-    int replicationsNumber; // number of replications of the log entry on other servers (if >= server majority: entry is committed)
     Command entryCommand;   // command of the log entry
 
-    _logEntry(): index(0), term(), replicationsNumber(), entryCommand() {} // default constructor
-    _logEntry(int _index, int _term, int _replicationsNumber, Command _entryCommand):
-             index(_index), term(_term), replicationsNumber(_replicationsNumber), entryCommand(_entryCommand.var, _entryCommand.value) {}
+    _logEntry(): index(0), term(), entryCommand() {} // default constructor
+    _logEntry(int _index, int _term, Command _entryCommand):
+             index(_index), term(_term), entryCommand(_entryCommand.var, _entryCommand.value) {}
 
 }LogEntry;
 
 inline std::ostream& operator<<(std::ostream& os, const LogEntry& log_elem)
 {
     os << "index=" << log_elem.index << "; term=" << log_elem.term << "; command: "
-       << log_elem.entryCommand.var << " <-- " << log_elem.entryCommand.value
-       << "; replications: " << log_elem.replicationsNumber; // no endl!
+       << log_elem.entryCommand.var << " <-- " << log_elem.entryCommand.value; // no endl!
     return os;
 }
 

@@ -11,6 +11,7 @@
 
 #include "logEntry.h"
 #include "serverState.h"
+#include "serverClientRequestInfo.h"
 #include "serverRequestVoteMsg_m.h"
 #include "serverReplyVoteMsg_m.h"
 #include "serverAppendEntriesMsg_m.h"
@@ -28,6 +29,7 @@ class Server: public cSimpleModule
 
   private:
     int servers_number;
+    int clients_number;
 
     serverState state = FOLLOWER;
 
@@ -60,7 +62,9 @@ class Server: public cSimpleModule
     // Volatile state on leader (reinitialized after election)
     std::vector<int> nextIndex;     //for each server, index of the next log entry to send to that server (initialized to leader last log index + 1)
     std::vector<int> matchIndex;    //for each server, index of highest log entry known to be replicated on server (initialized to 0, increases monotonically)
-    std::vector<ServerAppendEntriesMsg *> appendEntriesVect; // for each server, current appendEntries message sent by the Leader
+    std::vector<ServerAppendEntriesMsg *> appendEntriesVect;        // for each server, current appendEntries message sent by the Leader
+    std::vector<ServerClientRequestInfo *> clientRequestInfoVect;   // for each server, info about the most recent client request
+
 
   public:
     Server();
@@ -110,6 +114,7 @@ Server::~Server()
     for (int i=0; i < servers_number; i++)
         delete appendEntriesVect[i];
 
+
 }
 
 
@@ -123,9 +128,11 @@ void Server::initialize()
     stateMachine.push_front(LogEntry());
 
     servers_number = par("servers_number");
+    clients_number = par("clients_number");
     nextIndex.resize(servers_number, logEntries.size());
     matchIndex.resize(servers_number, 0);
     appendEntriesVect.resize(servers_number, nullptr);
+    clientRequestInfoVect.resize(clients_number);
 
     // Timeouts
     electionTimeout = normal(5.0, 1);
@@ -367,12 +374,13 @@ void Server::handleClientRequestMsg(ClientRequestMsg *clientRequestMsg)
             replyClientRequestMsg->setLeaderAddr(currentLeader);
             send((ServerReplyClientRequestMsg *)replyClientRequestMsg, "gate$o", getIndex());
         }else{
-            int entryIndex = logEntries.size(); // remember the marker at position 0
+            int entryIndex = logEntries.size(); // remember marker at position 0
             int entryTerm = currentTerm;
-            int replicationNumber = 1;
+            int serialNumber = clientRequestMsg->getSerialNumber();
             Command entryCommand = clientRequestMsg->getCommand();
-            EV << "server_" << getIndex() << " received a request from client_" << clientAddr << " (command: " << entryCommand << ")\n";
-            logEntries.push_back(LogEntry(entryIndex, entryTerm, replicationNumber, entryCommand));
+            EV << "server_" << getIndex() << " received a request from client_" << clientAddr
+               << " (command: " << entryCommand << "; serialNumber=" << serialNumber <<")\n";
+            logEntries.push_back(LogEntry(entryIndex, entryTerm, entryCommand));
         }
     }
 
@@ -444,7 +452,6 @@ void Server::updateLastApplied()
                 lastApplied = matchIndex[i];
         }
     }
-
 }
 
 
@@ -515,11 +522,12 @@ ServerAppendEntriesMsg *Server::generateAppendEntriesMsg(bool isLeaderheartbeat,
         msg->setLeaderId(getIndex());
         msg->setLeaderCommit(commitIndex);
         msg->setPrevLogIndex(nextIndex[destServer]-1);
-        // Initialize iterator to list
-        std::list<LogEntry>::iterator it = logEntries.begin();
+
+        std::list<LogEntry>::iterator it = logEntries.begin();  // Initialize iterator to list
+        advance(it, nextIndex[destServer]-1);
         msg->setPrevLogTerm((*it).term);
         std::list<_logEntry> entries;
-        for(advance(it, nextIndex[destServer]); it != logEntries.end(); it++)
+        for(it++; it != logEntries.end(); it++)
             entries.push_back(*it);
         msg->setEntries(entries);
     }

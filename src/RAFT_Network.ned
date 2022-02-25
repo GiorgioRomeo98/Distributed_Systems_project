@@ -24,6 +24,7 @@ simple Server
     parameters:
         @display("i=device/server");
         int servers_number = default(5);
+        int clients_number = default(2);
     gates:
         inout gate[];
 }

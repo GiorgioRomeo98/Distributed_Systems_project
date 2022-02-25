@@ -30,5 +30,6 @@ class noncobject Cmd;
 message ClientRequestMsg {
     int sourceAddr;		// address of the client that sent the request
     int destAddr;		// address of the server
+    int serialNumber;	// to uniquely identify a client request between all the ones sent by the same client
     Cmd command;		// command to process
 }

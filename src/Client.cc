@@ -14,10 +14,10 @@ using namespace omnetpp;
 class Client: public cSimpleModule
 {
   private:
-    int addr;           // client source address
-    int seq;            // message sequence number
-    int servers_number; // total number of servers
-    int serverLeader;   // address of the most recent leader
+    int addr;               // client source address
+    int serialNumber;       // request message serial number
+    int servers_number;     // total number of servers
+    int serverLeader;       // address of the most recent leader
 
     Command currentCommand;
 
@@ -58,7 +58,7 @@ void Client::initialize()
     //event = tictocMsg = nullptr;
 
     addr = getIndex();
-    seq = 0;
+    serialNumber = 0;
     servers_number = par("servers_number");
     serverLeader = -1;
 
@@ -135,12 +135,13 @@ ClientRequestMsg * Client::generateRequestMsg()
 
     // Generate a message with a different name every time.
     char msgName[40];
-    sprintf(msgName, "request_%d", ++seq);
+    sprintf(msgName, "request_%d", ++serialNumber);
     ClientRequestMsg *msg = new ClientRequestMsg(msgName);
 
     // assign source and destination address to the message
     msg->setSourceAddr(addr);
     msg->setDestAddr(serverAddr);
+    msg->setSerialNumber(serialNumber);
 
     // assign command to the message
     currentCommand = Command('a' + rand()%26, rand()%10);
