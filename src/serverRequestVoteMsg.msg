@@ -14,7 +14,6 @@
 // 
 
 message ServerRequestVoteMsg {
-    int source;			// address of the sender server
     int term;			// candidate’s term
 	int candidateId;	// candidate requesting vote
 	int lastLogIndex;	// index of candidate’s last log entry

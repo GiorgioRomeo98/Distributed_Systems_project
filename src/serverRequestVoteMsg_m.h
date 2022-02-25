@@ -23,7 +23,6 @@
  * <pre>
  * message ServerRequestVoteMsg
  * {
- *     int source;			// address of the sender server
  *     int term;			// candidate’s term
  *     int candidateId;	// candidate requesting vote
  *     int lastLogIndex;	// index of candidate’s last log entry
@@ -34,7 +33,6 @@
 class ServerRequestVoteMsg : public ::omnetpp::cMessage
 {
   protected:
-    int source;
     int term;
     int candidateId;
     int lastLogIndex;
@@ -57,8 +55,6 @@ class ServerRequestVoteMsg : public ::omnetpp::cMessage
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
     // field getter/setter methods
-    virtual int getSource() const;
-    virtual void setSource(int source);
     virtual int getTerm() const;
     virtual void setTerm(int term);
     virtual int getCandidateId() const;

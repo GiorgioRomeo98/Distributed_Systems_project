@@ -181,7 +181,6 @@ Register_Class(ServerRequestVoteMsg)
 
 ServerRequestVoteMsg::ServerRequestVoteMsg(const char *name, short kind) : ::omnetpp::cMessage(name,kind)
 {
-    this->source = 0;
     this->term = 0;
     this->candidateId = 0;
     this->lastLogIndex = 0;
@@ -207,7 +206,6 @@ ServerRequestVoteMsg& ServerRequestVoteMsg::operator=(const ServerRequestVoteMsg
 
 void ServerRequestVoteMsg::copy(const ServerRequestVoteMsg& other)
 {
-    this->source = other.source;
     this->term = other.term;
     this->candidateId = other.candidateId;
     this->lastLogIndex = other.lastLogIndex;
@@ -217,7 +215,6 @@ void ServerRequestVoteMsg::copy(const ServerRequestVoteMsg& other)
 void ServerRequestVoteMsg::parsimPack(omnetpp::cCommBuffer *b) const
 {
     ::omnetpp::cMessage::parsimPack(b);
-    doParsimPacking(b,this->source);
     doParsimPacking(b,this->term);
     doParsimPacking(b,this->candidateId);
     doParsimPacking(b,this->lastLogIndex);
@@ -227,21 +224,10 @@ void ServerRequestVoteMsg::parsimPack(omnetpp::cCommBuffer *b) const
 void ServerRequestVoteMsg::parsimUnpack(omnetpp::cCommBuffer *b)
 {
     ::omnetpp::cMessage::parsimUnpack(b);
-    doParsimUnpacking(b,this->source);
     doParsimUnpacking(b,this->term);
     doParsimUnpacking(b,this->candidateId);
     doParsimUnpacking(b,this->lastLogIndex);
     doParsimUnpacking(b,this->lastLogTerm);
-}
-
-int ServerRequestVoteMsg::getSource() const
-{
-    return this->source;
-}
-
-void ServerRequestVoteMsg::setSource(int source)
-{
-    this->source = source;
 }
 
 int ServerRequestVoteMsg::getTerm() const
@@ -349,7 +335,7 @@ const char *ServerRequestVoteMsgDescriptor::getProperty(const char *propertyname
 int ServerRequestVoteMsgDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 5+basedesc->getFieldCount() : 5;
+    return basedesc ? 4+basedesc->getFieldCount() : 4;
 }
 
 unsigned int ServerRequestVoteMsgDescriptor::getFieldTypeFlags(int field) const
@@ -365,9 +351,8 @@ unsigned int ServerRequestVoteMsgDescriptor::getFieldTypeFlags(int field) const
         FD_ISEDITABLE,
         FD_ISEDITABLE,
         FD_ISEDITABLE,
-        FD_ISEDITABLE,
     };
-    return (field>=0 && field<5) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<4) ? fieldTypeFlags[field] : 0;
 }
 
 const char *ServerRequestVoteMsgDescriptor::getFieldName(int field) const
@@ -379,24 +364,22 @@ const char *ServerRequestVoteMsgDescriptor::getFieldName(int field) const
         field -= basedesc->getFieldCount();
     }
     static const char *fieldNames[] = {
-        "source",
         "term",
         "candidateId",
         "lastLogIndex",
         "lastLogTerm",
     };
-    return (field>=0 && field<5) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<4) ? fieldNames[field] : nullptr;
 }
 
 int ServerRequestVoteMsgDescriptor::findField(const char *fieldName) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     int base = basedesc ? basedesc->getFieldCount() : 0;
-    if (fieldName[0]=='s' && strcmp(fieldName, "source")==0) return base+0;
-    if (fieldName[0]=='t' && strcmp(fieldName, "term")==0) return base+1;
-    if (fieldName[0]=='c' && strcmp(fieldName, "candidateId")==0) return base+2;
-    if (fieldName[0]=='l' && strcmp(fieldName, "lastLogIndex")==0) return base+3;
-    if (fieldName[0]=='l' && strcmp(fieldName, "lastLogTerm")==0) return base+4;
+    if (fieldName[0]=='t' && strcmp(fieldName, "term")==0) return base+0;
+    if (fieldName[0]=='c' && strcmp(fieldName, "candidateId")==0) return base+1;
+    if (fieldName[0]=='l' && strcmp(fieldName, "lastLogIndex")==0) return base+2;
+    if (fieldName[0]=='l' && strcmp(fieldName, "lastLogTerm")==0) return base+3;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -413,9 +396,8 @@ const char *ServerRequestVoteMsgDescriptor::getFieldTypeString(int field) const
         "int",
         "int",
         "int",
-        "int",
     };
-    return (field>=0 && field<5) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<4) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **ServerRequestVoteMsgDescriptor::getFieldPropertyNames(int field) const
@@ -482,11 +464,10 @@ std::string ServerRequestVoteMsgDescriptor::getFieldValueAsString(void *object, 
     }
     ServerRequestVoteMsg *pp = (ServerRequestVoteMsg *)object; (void)pp;
     switch (field) {
-        case 0: return long2string(pp->getSource());
-        case 1: return long2string(pp->getTerm());
-        case 2: return long2string(pp->getCandidateId());
-        case 3: return long2string(pp->getLastLogIndex());
-        case 4: return long2string(pp->getLastLogTerm());
+        case 0: return long2string(pp->getTerm());
+        case 1: return long2string(pp->getCandidateId());
+        case 2: return long2string(pp->getLastLogIndex());
+        case 3: return long2string(pp->getLastLogTerm());
         default: return "";
     }
 }
@@ -501,11 +482,10 @@ bool ServerRequestVoteMsgDescriptor::setFieldValueAsString(void *object, int fie
     }
     ServerRequestVoteMsg *pp = (ServerRequestVoteMsg *)object; (void)pp;
     switch (field) {
-        case 0: pp->setSource(string2long(value)); return true;
-        case 1: pp->setTerm(string2long(value)); return true;
-        case 2: pp->setCandidateId(string2long(value)); return true;
-        case 3: pp->setLastLogIndex(string2long(value)); return true;
-        case 4: pp->setLastLogTerm(string2long(value)); return true;
+        case 0: pp->setTerm(string2long(value)); return true;
+        case 1: pp->setCandidateId(string2long(value)); return true;
+        case 2: pp->setLastLogIndex(string2long(value)); return true;
+        case 3: pp->setLastLogTerm(string2long(value)); return true;
         default: return false;
     }
 }

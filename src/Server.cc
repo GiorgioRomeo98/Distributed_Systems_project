@@ -132,7 +132,7 @@ void Server::initialize()
     nextIndex.resize(servers_number, logEntries.size());
     matchIndex.resize(servers_number, 0);
     appendEntriesVect.resize(servers_number, nullptr);
-    clientRequestInfoVect.resize(clients_number);
+    clientRequestInfoVect.resize(clients_number, new ServerClientRequestInfo());
 
     // Timeouts
     electionTimeout = normal(5.0, 1);
@@ -327,8 +327,11 @@ void Server::processAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 
         // If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index of last new entry)
         int leaderCommit = appendEntriesMsg->getLeaderCommit();
+        int oldcommitIndex = commitIndex;
         if (leaderCommit > commitIndex)
             commitIndex = std::min(leaderCommit, newLogEntries.back().index);
+        if (oldcommitIndex < commitIndex)
+            lastApplied = commitIndex;  //TODO implement state machine
     }
     char msgName[40];
     sprintf(msgName, "replyAppendEntries_%d", currentTerm);
@@ -374,6 +377,7 @@ void Server::handleClientRequestMsg(ClientRequestMsg *clientRequestMsg)
             replyClientRequestMsg->setLeaderAddr(currentLeader);
             send((ServerReplyClientRequestMsg *)replyClientRequestMsg, "gate$o", getIndex());
         }else{
+            // TODO: implement serialNumber handling (same request should not be re-executed)
             int entryIndex = logEntries.size(); // remember marker at position 0
             int entryTerm = currentTerm;
             int serialNumber = clientRequestMsg->getSerialNumber();
@@ -412,14 +416,18 @@ void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
     sprintf(msgName, "replyVote_%d", currentTerm);
     ServerReplyVoteMsg *replyVoteMsg = new ServerReplyVoteMsg(msgName);
 
-    int sourceTerm = requestVoteMsg->getTerm();
-    /*if (sourceTerm > currentTerm and state != FOLLOWER)
-        passToFollowerState(sourceTerm);
-    */
+    int candidateTerm = requestVoteMsg->getTerm();
+    int candidateLastLogTerm = requestVoteMsg->getLastLogTerm();
+    int candidateLastLogIndex = requestVoteMsg->getLastLogIndex();
+    int dest = requestVoteMsg->getCandidateId();
+    int lastLogTerm = logEntries.back().term;
+    int lastLogIndex = logEntries.back().index;
 
     bool voteGranted = false;
-    if (sourceTerm >= currentTerm){  //CHECK THE >= SIGN
-        if ((votedFor == -1 or votedFor == requestVoteMsg->getCandidateId()) /*and candidate’s log is at least as up-to-date as receiver’s log, grant vote*/)
+    if (candidateTerm >= currentTerm){
+        // If votedFor is null or candidateId, and candidate’s log is at least as up-to-date as receiver’s log, grant vote
+        if ((votedFor == -1 or votedFor == requestVoteMsg->getCandidateId()) and
+            (candidateLastLogTerm > lastLogTerm or (candidateLastLogTerm == lastLogTerm and candidateLastLogIndex >= lastLogIndex)))
             voteGranted = true;
     }
 
@@ -427,7 +435,7 @@ void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
     replyVoteMsg->setTerm(currentTerm);
     replyVoteMsg->setVoteGranted(voteGranted);
 
-    int dest = requestVoteMsg->getSource();
+
     // sending the message
     EV << "Server_" << getIndex() << " forwarding message " << replyVoteMsg << " towards server_" << dest << "\n";
     // Duplicate message and send the copy
@@ -492,7 +500,6 @@ ServerRequestVoteMsg *Server::generateRequestVoteMsg()
     ServerRequestVoteMsg *msg = new ServerRequestVoteMsg(msgName);
 
     // assign values to message fields
-    msg->setSource(getIndex());
     msg->setTerm(currentTerm);
     msg->setCandidateId(getIndex());
     msg->setLastLogIndex(-1);
