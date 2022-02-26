@@ -140,7 +140,7 @@ void Server::initialize()
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
     heartbeatTimeout = 2;
     heartbeatTimeoutEvent = new cMessage("heartbeatTimeoutEvent");
-    appendEntriesTimeout = 5;
+    appendEntriesTimeout = 4.5;
     appendEntriesTimeoutEvent = new cMessage("appendEntriesTimeoutEvent");
 
     // server's attributes to watch during simulation
@@ -506,10 +506,20 @@ void Server::updateCommitIndex()
     int majority = (servers_number/2) + 1;
     int replications;
     int oldCommitIndex = commitIndex;
+    std::list<LogEntry>::iterator it;
 
+    // for each server, we take the highest index of the entry the Leader knows is replicated in that server --> if the index is greater than commitIndex
+    // we can check if the entry has been replicated in the majority of the servers, if it is the case we update commitIndex
+    // Careful: a leader cannot immediately conclude that an entry from a previous term is committed once it is stored on a majority of servers.
+    //          Raft never commits log entries from previous terms by counting replicas. Only log entries from the leader’s current term are committed
+    //          by counting replicas; once an entry from the current term has been committed in this way, then all prior entries are committed indirectly
     for (int i = 0; i < servers_number; i++){
         replications = 0;
         if (commitIndex < matchIndex[i]){
+            it = logEntries.begin();
+            advance(it, matchIndex[i]);
+            if ((*it).term < currentTerm)
+                continue;
             replications++;
             for (int j=0; j < servers_number; j++)
                 if (j != i and matchIndex[j] >= matchIndex[i])
@@ -529,7 +539,7 @@ void Server::updateStateMachine(int oldCommitIndex, int newCommitIndex)
     // Initialize iterator to list
     std::list<LogEntry>::iterator it = logEntries.begin();
     int index = oldCommitIndex+1;
-    for (advance(it, oldCommitIndex+1); index < newCommitIndex; it++, index++){
+    for (advance(it, oldCommitIndex+1); index <= newCommitIndex; it++, index++){
         int varUpdated = false;
         char commandVar = (*it).entryCommand.var;
         int commandValue = (*it).entryCommand.value;
