@@ -25,7 +25,8 @@
  * {
  *     int source;		// source address
  *     int term; 		// currentTerm, for leader to update itself
- *     bool success; 	// true if follower contained entry matching	prevLogIndex and prevLogTerm
+ *     bool success; 	// true if follower contained entry matching prevLogIndex and prevLogTerm
+ *     bool isHeartbeatReply;	// true if the server is replying to a Leader heartbeat messagge (false if replying to a Leader AppendEntries message)
  * }
  * </pre>
  */
@@ -35,6 +36,7 @@ class ServerReplyAppendEntriesMsg : public ::omnetpp::cMessage
     int source;
     int term;
     bool success;
+    bool isHeartbeatReply;
 
   private:
     void copy(const ServerReplyAppendEntriesMsg& other);
@@ -59,6 +61,8 @@ class ServerReplyAppendEntriesMsg : public ::omnetpp::cMessage
     virtual void setTerm(int term);
     virtual bool getSuccess() const;
     virtual void setSuccess(bool success);
+    virtual bool getIsHeartbeatReply() const;
+    virtual void setIsHeartbeatReply(bool isHeartbeatReply);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const ServerReplyAppendEntriesMsg& obj) {obj.parsimPack(b);}

@@ -184,6 +184,7 @@ ServerReplyAppendEntriesMsg::ServerReplyAppendEntriesMsg(const char *name, short
     this->source = 0;
     this->term = 0;
     this->success = false;
+    this->isHeartbeatReply = false;
 }
 
 ServerReplyAppendEntriesMsg::ServerReplyAppendEntriesMsg(const ServerReplyAppendEntriesMsg& other) : ::omnetpp::cMessage(other)
@@ -208,6 +209,7 @@ void ServerReplyAppendEntriesMsg::copy(const ServerReplyAppendEntriesMsg& other)
     this->source = other.source;
     this->term = other.term;
     this->success = other.success;
+    this->isHeartbeatReply = other.isHeartbeatReply;
 }
 
 void ServerReplyAppendEntriesMsg::parsimPack(omnetpp::cCommBuffer *b) const
@@ -216,6 +218,7 @@ void ServerReplyAppendEntriesMsg::parsimPack(omnetpp::cCommBuffer *b) const
     doParsimPacking(b,this->source);
     doParsimPacking(b,this->term);
     doParsimPacking(b,this->success);
+    doParsimPacking(b,this->isHeartbeatReply);
 }
 
 void ServerReplyAppendEntriesMsg::parsimUnpack(omnetpp::cCommBuffer *b)
@@ -224,6 +227,7 @@ void ServerReplyAppendEntriesMsg::parsimUnpack(omnetpp::cCommBuffer *b)
     doParsimUnpacking(b,this->source);
     doParsimUnpacking(b,this->term);
     doParsimUnpacking(b,this->success);
+    doParsimUnpacking(b,this->isHeartbeatReply);
 }
 
 int ServerReplyAppendEntriesMsg::getSource() const
@@ -254,6 +258,16 @@ bool ServerReplyAppendEntriesMsg::getSuccess() const
 void ServerReplyAppendEntriesMsg::setSuccess(bool success)
 {
     this->success = success;
+}
+
+bool ServerReplyAppendEntriesMsg::getIsHeartbeatReply() const
+{
+    return this->isHeartbeatReply;
+}
+
+void ServerReplyAppendEntriesMsg::setIsHeartbeatReply(bool isHeartbeatReply)
+{
+    this->isHeartbeatReply = isHeartbeatReply;
 }
 
 class ServerReplyAppendEntriesMsgDescriptor : public omnetpp::cClassDescriptor
@@ -321,7 +335,7 @@ const char *ServerReplyAppendEntriesMsgDescriptor::getProperty(const char *prope
 int ServerReplyAppendEntriesMsgDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 3+basedesc->getFieldCount() : 3;
+    return basedesc ? 4+basedesc->getFieldCount() : 4;
 }
 
 unsigned int ServerReplyAppendEntriesMsgDescriptor::getFieldTypeFlags(int field) const
@@ -336,8 +350,9 @@ unsigned int ServerReplyAppendEntriesMsgDescriptor::getFieldTypeFlags(int field)
         FD_ISEDITABLE,
         FD_ISEDITABLE,
         FD_ISEDITABLE,
+        FD_ISEDITABLE,
     };
-    return (field>=0 && field<3) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<4) ? fieldTypeFlags[field] : 0;
 }
 
 const char *ServerReplyAppendEntriesMsgDescriptor::getFieldName(int field) const
@@ -352,8 +367,9 @@ const char *ServerReplyAppendEntriesMsgDescriptor::getFieldName(int field) const
         "source",
         "term",
         "success",
+        "isHeartbeatReply",
     };
-    return (field>=0 && field<3) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<4) ? fieldNames[field] : nullptr;
 }
 
 int ServerReplyAppendEntriesMsgDescriptor::findField(const char *fieldName) const
@@ -363,6 +379,7 @@ int ServerReplyAppendEntriesMsgDescriptor::findField(const char *fieldName) cons
     if (fieldName[0]=='s' && strcmp(fieldName, "source")==0) return base+0;
     if (fieldName[0]=='t' && strcmp(fieldName, "term")==0) return base+1;
     if (fieldName[0]=='s' && strcmp(fieldName, "success")==0) return base+2;
+    if (fieldName[0]=='i' && strcmp(fieldName, "isHeartbeatReply")==0) return base+3;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -378,8 +395,9 @@ const char *ServerReplyAppendEntriesMsgDescriptor::getFieldTypeString(int field)
         "int",
         "int",
         "bool",
+        "bool",
     };
-    return (field>=0 && field<3) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<4) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **ServerReplyAppendEntriesMsgDescriptor::getFieldPropertyNames(int field) const
@@ -449,6 +467,7 @@ std::string ServerReplyAppendEntriesMsgDescriptor::getFieldValueAsString(void *o
         case 0: return long2string(pp->getSource());
         case 1: return long2string(pp->getTerm());
         case 2: return bool2string(pp->getSuccess());
+        case 3: return bool2string(pp->getIsHeartbeatReply());
         default: return "";
     }
 }
@@ -466,6 +485,7 @@ bool ServerReplyAppendEntriesMsgDescriptor::setFieldValueAsString(void *object, 
         case 0: pp->setSource(string2long(value)); return true;
         case 1: pp->setTerm(string2long(value)); return true;
         case 2: pp->setSuccess(string2bool(value)); return true;
+        case 3: pp->setIsHeartbeatReply(string2bool(value)); return true;
         default: return false;
     }
 }

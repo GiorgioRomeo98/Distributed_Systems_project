@@ -21,8 +21,8 @@ class Client: public cSimpleModule
 
     Command currentCommand;
 
-    simtime_t requestMsgTimeout;  // timeout
-    cMessage *requestMsgTimeoutEvent;  // holds pointer to the requestMsgTimeout self-message
+    simtime_t requestMsgTimeout;        // timeout
+    cMessage *requestMsgTimeoutEvent;   // holds pointer to the requestMsgTimeout self-message
     ClientRequestMsg *currentRequestMsg;
 
   public:
@@ -55,7 +55,6 @@ void Client::initialize()
 {
     // Set the pointer to nullptr, so that the destructor won't crash even if initialize() doesn't get called because of a runtime
     // error or user cancellation during the startup process.
-    //event = tictocMsg = nullptr;
 
     addr = getIndex();
     serialNumber = 0;
@@ -66,10 +65,9 @@ void Client::initialize()
 
     // client's attributes to watch during simulation
 
-    if (getIndex() >= 0){   //TODO: fix >=
-        requestMsgTimeoutEvent = new cMessage("requestMsgTimeoutEvent");
-        scheduleAt(simTime()+par("sendIaTime").doubleValue(), requestMsgTimeoutEvent);
-    }
+    requestMsgTimeoutEvent = new cMessage("requestMsgTimeoutEvent");
+    scheduleAt(simTime()+par("sendIaTime").doubleValue(), requestMsgTimeoutEvent);
+
 
 }
 
@@ -150,7 +148,7 @@ ClientRequestMsg * Client::generateRequestMsg()
     return msg;
 }
 
-void Client::sendRequest(ClientRequestMsg * msg)
+void Client::sendRequest(ClientRequestMsg *msg)
 {
     // Duplicate message and send the copy.
     ClientRequestMsg *copy = (ClientRequestMsg *)msg->dup();
@@ -158,6 +156,7 @@ void Client::sendRequest(ClientRequestMsg * msg)
 
     EV << "client_" << getIndex() << " forwarding message " << msg << " towards server_" << copy->getDestAddr()
        <<" with command: " << currentCommand.var << " <-- " << currentCommand.value << "\n";
+
     /*
     * If Client can send a list of commands (for sake of simplicity, just 1 command as suggested from RAFT paper)
     for (auto const &cmd : msg->getCommand())

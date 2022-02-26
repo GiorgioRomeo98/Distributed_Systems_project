@@ -32,7 +32,7 @@ typedef std::list<_logEntry> logList;
  *     int leaderId;		// so follower can redirect clients
  *     int prevLogIndex; 	// index of log entry immediately preceding new ones
  *     int prevLogTerm; 	// term of prevLogIndex entry
- *     logList entries;  // log entries to store (empty for heartbeat; may send more than one for efficiency)
+ *     logList entries;  	// log entries to store (empty for heartbeat; may send more than one for efficiency)
  *     int leaderCommit;	// Leader’s commitIndex
  * }
  * </pre>

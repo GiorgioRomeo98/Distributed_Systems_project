@@ -16,5 +16,6 @@
 message ServerReplyAppendEntriesMsg {
     int source;		// source address
     int term; 		// currentTerm, for leader to update itself
-	bool success; 	// true if follower contained entry matching	prevLogIndex and prevLogTerm
+	bool success; 	// true if follower contained entry matching prevLogIndex and prevLogTerm
+	bool isHeartbeatReply;	// true if the server is replying to a Leader heartbeat messagge (false if replying to a Leader AppendEntries message)
 }

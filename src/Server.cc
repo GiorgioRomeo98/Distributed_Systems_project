@@ -53,7 +53,7 @@ class Server: public cSimpleModule
     int votedFor = -1;          //candidateId that received vote in current term (or -1 if none)
     int votesNumber = 0;
     std::list<LogEntry> logEntries;     //each entry contains commands for state machine, and term when entry was received by leader (first index is 1)
-    std::list<LogEntry> stateMachine;   //commands applied to the server's state machine
+    std::list<Command> stateMachine;   //server's state machine after commands executions
 
     // Volatile state on each server
     int commitIndex = 0; //index of highest log entry known to be committed (initialized to 0, increases monotonically)
@@ -83,11 +83,14 @@ class Server: public cSimpleModule
     void sendRequestVoteMsg();
     void sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg);
     void handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg);
+    void processHeartbeatMsg(ServerAppendEntriesMsg *appendEntriesMsg);
     void processAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg);
+    void handleReplyHeartbeatMsg(ServerReplyAppendEntriesMsg *replyAppendEntriesMsg);
     void handleReplyAppendEntriesMsg(ServerReplyAppendEntriesMsg *replyAppendEntriesMsg);
     void passToFollowerState(int updatedTerm);
     void passToLeaderState();
-    void updateLastApplied();
+    void updateCommitIndex();
+    void updateStateMachine(int oldCommitIndex, int newCommitIndex);
     ServerRequestVoteMsg *generateRequestVoteMsg();
     ServerAppendEntriesMsg *generateAppendEntriesMsg(bool isLeaderheartbeat, int destServer);
 };
@@ -114,7 +117,6 @@ Server::~Server()
     for (int i=0; i < servers_number; i++)
         delete appendEntriesVect[i];
 
-
 }
 
 
@@ -123,9 +125,8 @@ void Server::initialize()
 {
     // Initialize is called at the beginning of the simulation.
 
-    // set the begin marker of logEntries and stateMachine list
+    // set the begin marker of logEntrieslist
     logEntries.push_front(LogEntry());
-    stateMachine.push_front(LogEntry());
 
     servers_number = par("servers_number");
     clients_number = par("clients_number");
@@ -143,7 +144,6 @@ void Server::initialize()
     appendEntriesTimeoutEvent = new cMessage("appendEntriesTimeoutEvent");
 
     // server's attributes to watch during simulation
-    WATCH(state);
     WATCH(currentTerm);
     WATCH(currentLeader);
     WATCH(votedFor);
@@ -154,6 +154,7 @@ void Server::initialize()
     WATCH(lastApplied);
     WATCH_VECTOR(nextIndex);
     WATCH_VECTOR(matchIndex);
+    WATCH(state);
 
     scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
 }
@@ -175,6 +176,8 @@ void Server::handleMessage(cMessage *msg)
         handleReplyVoteMsg((ServerReplyVoteMsg *) msg);
     else if (dynamic_cast<ServerAppendEntriesMsg *>(msg))
         handleAppendEntriesMsg((ServerAppendEntriesMsg *) msg);
+    else if (dynamic_cast<ServerReplyAppendEntriesMsg *>(msg) and ((ServerReplyAppendEntriesMsg *) msg)->getIsHeartbeatReply())
+        handleReplyHeartbeatMsg((ServerReplyAppendEntriesMsg *) msg);
     else if (dynamic_cast<ServerReplyAppendEntriesMsg *>(msg))
         handleReplyAppendEntriesMsg((ServerReplyAppendEntriesMsg *) msg);
     else if (dynamic_cast<ClientRequestMsg *>(msg))
@@ -270,23 +273,56 @@ void Server::appendEntries(bool isLeaderheartbeat)
 void Server::handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
     currentLeader = appendEntriesMsg->getLeaderId();
-    // check if it is a leader heartbeat message (entries should be empty)
-    if (appendEntriesMsg->getEntries().empty()){
-        EV << "Server_" << getIndex() << " received heartbeat message " << appendEntriesMsg << " from server_" << appendEntriesMsg->getLeaderId() << "\n";
-        if (appendEntriesMsg->getTerm() >= currentTerm) // TODO: CHECK >= SIGN
-            passToFollowerState(appendEntriesMsg->getTerm());
-    }else{
-        EV << "Server_" << getIndex() << " received appendEntries message " << appendEntriesMsg << " from server_" << appendEntriesMsg->getLeaderId() << "\n";
+    // check if it is a leader heartbeat message (log entries should be empty)
+    if (appendEntriesMsg->getEntries().empty())
+        processHeartbeatMsg(appendEntriesMsg);
+    else
         processAppendEntriesMsg(appendEntriesMsg);
-    }
 
     delete (appendEntriesMsg);
 }
 
 
+/*
+ * Leader periodically sends heartbeat messages to all other servers
+ */
+void Server::processHeartbeatMsg(ServerAppendEntriesMsg *appendEntriesMsg)
+{
+    EV << "Server_" << getIndex() << " received heartbeat message " << appendEntriesMsg << " from server_" << appendEntriesMsg->getLeaderId() << "\n";
 
+    bool success = true;
+    if (appendEntriesMsg->getTerm() < currentTerm)
+        success = false;
+    if (appendEntriesMsg->getTerm() >= currentTerm){
+        passToFollowerState(appendEntriesMsg->getTerm());
+        int oldCommitIndex = commitIndex;
+        if (commitIndex < appendEntriesMsg->getLeaderCommit()){
+            commitIndex = appendEntriesMsg->getLeaderCommit();
+            updateStateMachine(oldCommitIndex,  commitIndex);
+        }
+    }
+
+    char msgName[40];
+    sprintf(msgName, "replyHeartbeat_%d", currentTerm);
+    ServerReplyAppendEntriesMsg *msg = new ServerReplyAppendEntriesMsg(msgName);
+    msg->setSource(getIndex());
+    msg->setTerm(currentTerm);
+    msg->setSuccess(success);
+    msg->setIsHeartbeatReply(true);
+
+    EV << "Server_" << getIndex() << " forwarding reply heartbeat message " << msg << " towards server_" << appendEntriesMsg->getLeaderId() << "\n";
+    send(msg, "gate$o", appendEntriesMsg->getLeaderId());
+
+}
+
+
+/*
+ * Leader periodically sends AppendEntries messages to all other servers (if there are log entries to send)
+ */
 void Server::processAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
+    EV << "Server_" << getIndex() << " received appendEntries message " << appendEntriesMsg << " from server_" << appendEntriesMsg->getLeaderId() << "\n";
+
     std::list<_logEntry> newLogEntries = appendEntriesMsg->getEntries();
     std::list<LogEntry>::iterator it = logEntries.begin();
     bool success = true;
@@ -331,7 +367,10 @@ void Server::processAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
         if (leaderCommit > commitIndex)
             commitIndex = std::min(leaderCommit, newLogEntries.back().index);
         if (oldcommitIndex < commitIndex)
-            lastApplied = commitIndex;  //TODO implement state machine
+            updateStateMachine(oldcommitIndex, commitIndex);
+
+        //update matchIndex (all the new log entries are now replicated in this server)
+        matchIndex[getIndex()] = logEntries.back().index;
     }
     char msgName[40];
     sprintf(msgName, "replyAppendEntries_%d", currentTerm);
@@ -339,10 +378,23 @@ void Server::processAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
     msg->setSource(getIndex());
     msg->setTerm(currentTerm);
     msg->setSuccess(success);
+    msg->setIsHeartbeatReply(false);
     EV << "Server_" << getIndex() << " forwarding message "<< msg << " towards server_" << appendEntriesMsg->getLeaderId() << "\n";
     send(msg, "gate$o", appendEntriesMsg->getLeaderId());
 }
 
+
+/*
+ * Handling of a reply to a heartbeat message sent by each server to the Leader
+ */
+void Server::handleReplyHeartbeatMsg(ServerReplyAppendEntriesMsg *replyAppendEntriesMsg)
+{
+    int sourceAddr = replyAppendEntriesMsg->getSource();
+    EV << "Server_" << getIndex() << " received heartbeat reply message " << replyAppendEntriesMsg << " from server_" << sourceAddr << "\n";
+    if (!replyAppendEntriesMsg->getSuccess() and replyAppendEntriesMsg->getTerm() > currentTerm)
+        passToFollowerState(replyAppendEntriesMsg->getTerm());
+    delete replyAppendEntriesMsg;
+}
 
 
 void Server::handleReplyAppendEntriesMsg(ServerReplyAppendEntriesMsg *replyAppendEntriesMsg)
@@ -352,9 +404,13 @@ void Server::handleReplyAppendEntriesMsg(ServerReplyAppendEntriesMsg *replyAppen
     if (replyAppendEntriesMsg->getSuccess()){
         nextIndex[sourceAddr] = appendEntriesVect[sourceAddr]->getEntries().back().index + 1;
         matchIndex[sourceAddr] = appendEntriesVect[sourceAddr]->getEntries().back().index;
-        updateLastApplied();
-    }else
-        nextIndex[sourceAddr]--;
+        updateCommitIndex();
+    }else{
+        if (replyAppendEntriesMsg->getTerm() > currentTerm)
+            passToFollowerState(replyAppendEntriesMsg->getTerm());
+        else
+            nextIndex[sourceAddr]--;
+    }
 
     delete replyAppendEntriesMsg;
 }
@@ -385,6 +441,7 @@ void Server::handleClientRequestMsg(ClientRequestMsg *clientRequestMsg)
             EV << "server_" << getIndex() << " received a request from client_" << clientAddr
                << " (command: " << entryCommand << "; serialNumber=" << serialNumber <<")\n";
             logEntries.push_back(LogEntry(entryIndex, entryTerm, entryCommand));
+            matchIndex[getIndex()] = entryIndex;
         }
     }
 
@@ -444,22 +501,48 @@ void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
 
 
 
-void Server::updateLastApplied()
+void Server::updateCommitIndex()
 {
     int majority = (servers_number/2) + 1;
     int replications;
+    int oldCommitIndex = commitIndex;
 
     for (int i = 0; i < servers_number; i++){
         replications = 0;
-        if (lastApplied < matchIndex[i]){
+        if (commitIndex < matchIndex[i]){
             replications++;
             for (int j=0; j < servers_number; j++)
                 if (j != i and matchIndex[j] >= matchIndex[i])
                     replications++;
             if (replications >= majority)
-                lastApplied = matchIndex[i];
+                commitIndex = matchIndex[i];
         }
     }
+    if (oldCommitIndex < commitIndex)
+        updateStateMachine(oldCommitIndex, commitIndex);
+}
+
+
+
+void Server::updateStateMachine(int oldCommitIndex, int newCommitIndex)
+{
+    // Initialize iterator to list
+    std::list<LogEntry>::iterator it = logEntries.begin();
+    int index = oldCommitIndex+1;
+    for (advance(it, oldCommitIndex+1); index < newCommitIndex; it++, index++){
+        int varUpdated = false;
+        char commandVar = (*it).entryCommand.var;
+        int commandValue = (*it).entryCommand.value;
+        for (std::list<Command>::iterator iter = stateMachine.begin(); iter != stateMachine.end() and !varUpdated; iter++)
+            if ((*iter).var == commandVar){
+                (*iter).value = commandValue;
+                varUpdated = true;
+            }
+        if (!varUpdated){
+            stateMachine.push_back(Command(commandVar,commandValue));
+        }
+    }
+    lastApplied = newCommitIndex;
 }
 
 
@@ -502,8 +585,8 @@ ServerRequestVoteMsg *Server::generateRequestVoteMsg()
     // assign values to message fields
     msg->setTerm(currentTerm);
     msg->setCandidateId(getIndex());
-    msg->setLastLogIndex(-1);
-    msg->setLastLogTerm(-1);
+    msg->setLastLogIndex(logEntries.back().index);
+    msg->setLastLogTerm(logEntries.back().term);
 
     return msg;
 }
@@ -520,6 +603,7 @@ ServerAppendEntriesMsg *Server::generateAppendEntriesMsg(bool isLeaderheartbeat,
         // assign values to appendEntries (heartbeat) message fields
         msg->setTerm(currentTerm);
         msg->setLeaderId(getIndex());
+        msg->setLeaderCommit(commitIndex);
     }else{
         sprintf(msgName, "appendEntries_%d", currentTerm);
         msg = new ServerAppendEntriesMsg(msgName);
