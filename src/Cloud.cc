@@ -31,6 +31,8 @@ Define_Module(Cloud);
 
 void Cloud::initialize()
 {
+    // Initialize is called at the beginning of the simulation.
+
     propDelay = (double)par("propDelay");
 }
 

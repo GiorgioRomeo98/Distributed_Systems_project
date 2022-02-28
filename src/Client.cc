@@ -53,20 +53,22 @@ Client::~Client()
 
 void Client::initialize()
 {
-    // Set the pointer to nullptr, so that the destructor won't crash even if initialize() doesn't get called because of a runtime
-    // error or user cancellation during the startup process.
+    // Initialize is called at the beginning of the simulation.
 
     addr = getIndex();
     serialNumber = 0;
     servers_number = par("servers_number");
     serverLeader = -1;
 
-    WATCH(currentCommand);
+    // Timeouts
+    requestMsgTimeout = 8;
+    requestMsgTimeoutEvent = new cMessage("requestMsgTimeoutEvent");
 
     // client's attributes to watch during simulation
+    WATCH(currentCommand);
 
-    requestMsgTimeoutEvent = new cMessage("requestMsgTimeoutEvent");
-    scheduleAt(simTime()+par("sendIaTime").doubleValue(), requestMsgTimeoutEvent);
+    // schedule the time when client will send its first request
+    scheduleAt(simTime()+requestMsgTimeout, requestMsgTimeoutEvent);
 
 
 }
@@ -84,17 +86,18 @@ void Client::handleMessage(cMessage *msg)
 
 void Client::handleRequestMsgTimeoutEvent(cMessage *timeout)
 {
-    //free memory and generate new request message
-    delete currentRequestMsg;
-    currentRequestMsg = generateRequestMsg();
+    // either the Client should send the first request or it did not receive a response within the time to re-send the same request
+    serverLeader = -1; // the Client should assume that the Server did not respond in time because it failed
 
-    bubble("Sending request");
+    // check if it is client's first request
+    if (currentRequestMsg == nullptr){
+        bubble("Sending new request");
+        currentRequestMsg = generateRequestMsg();
+    }else // Re-sending most recent request
+        bubble("Resending request");
+
     sendRequest(currentRequestMsg);
-
-    // set again the timeout to send a new request
-    // TODO: DIFFER TIMEOUT FOR A NEW REQUEST AND A TIMEOUT FOR RESENDING AN OLD REQUEST WITH NO REPLIES
-
-    scheduleAt(simTime()+par("sendIaTime").doubleValue(), requestMsgTimeoutEvent);
+    scheduleAt(simTime()+requestMsgTimeout, requestMsgTimeoutEvent);
 }
 
 
@@ -103,21 +106,26 @@ void Client::handleServerReplyClientRequestMsg(ServerReplyClientRequestMsg *serv
 {
     // most recent leader known by the server that replied to the client request
     int replyMostRecentLeader = serverReplyClientRequestMsg->getLeaderAddr();
+    serverLeader = replyMostRecentLeader;
 
     // destination server's address of the last client request message
     int oldDestServer = currentRequestMsg->getDestAddr();
 
     if (oldDestServer != replyMostRecentLeader){
-        serverLeader = replyMostRecentLeader;
         EV << "client_" << getIndex() << " sent request to the wrong server (server_" << oldDestServer << " was not the leader)\n";
         //free memory and generate new request message
         delete currentRequestMsg;
         currentRequestMsg = generateRequestMsg();
         sendRequest(currentRequestMsg);
     }else{
-        if (serverLeader == -1)
-            serverLeader = replyMostRecentLeader;
-        /* TODO: PROCESS RESULT */ bubble("Processing result");
+        EV << "client_" << getIndex() << " received a response from server_" << replyMostRecentLeader << "\n";
+        /* Processing result */
+        bubble("Processing result");
+
+        //free memory and generate new request message
+        delete currentRequestMsg;
+        currentRequestMsg = generateRequestMsg();
+
     }
     delete serverReplyClientRequestMsg;
 
