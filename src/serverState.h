@@ -9,6 +9,7 @@
 #define SERVERSTATE_H_
 
 enum serverState {
+    FAILED = -1,
     FOLLOWER = 0,
     CANDIDATE = 1,
     LEADER = 2

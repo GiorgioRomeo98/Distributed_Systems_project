@@ -113,20 +113,21 @@ void Client::handleServerReplyClientRequestMsg(ServerReplyClientRequestMsg *serv
 
     if (oldDestServer != replyMostRecentLeader){
         EV << "client_" << getIndex() << " sent request to the wrong server (server_" << oldDestServer << " was not the leader)\n";
-        //free memory and generate new request message
-        delete currentRequestMsg;
-        currentRequestMsg = generateRequestMsg();
-        sendRequest(currentRequestMsg);
+        currentRequestMsg->setDestAddr(replyMostRecentLeader);
+        bubble("Resending request");
     }else{
-        EV << "client_" << getIndex() << " received a response from server_" << replyMostRecentLeader << "\n";
+        EV << "client_" << getIndex() << " received a result=" << serverReplyClientRequestMsg->getResult() <<  " from server_" << replyMostRecentLeader << "\n";
         /* Processing result */
-        bubble("Processing result");
 
+        bubble("Sending new request");
         //free memory and generate new request message
         delete currentRequestMsg;
         currentRequestMsg = generateRequestMsg();
-
     }
+    sendRequest(currentRequestMsg);
+    cancelEvent(requestMsgTimeoutEvent);
+    scheduleAt(simTime()+requestMsgTimeout, requestMsgTimeoutEvent);
+
     delete serverReplyClientRequestMsg;
 
 }

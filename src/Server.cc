@@ -63,7 +63,7 @@ class Server: public cSimpleModule
     std::vector<int> nextIndex;     //for each server, index of the next log entry to send to that server (initialized to leader last log index + 1)
     std::vector<int> matchIndex;    //for each server, index of highest log entry known to be replicated on server (initialized to 0, increases monotonically)
     std::vector<ServerAppendEntriesMsg *> appendEntriesVect;        // for each server, current appendEntries message sent by the Leader
-    std::vector<ServerClientRequestInfo *> clientRequestInfoVect;   // for each server, info about the most recent client request
+    std::vector<ServerClientRequestInfo> clientRequestInfoVect;     // for each server, info about the most recent executed client request
 
 
   public:
@@ -93,6 +93,7 @@ class Server: public cSimpleModule
     void updateStateMachine(int oldCommitIndex, int newCommitIndex);
     ServerRequestVoteMsg *generateRequestVoteMsg();
     ServerAppendEntriesMsg *generateAppendEntriesMsg(bool isLeaderheartbeat, int destServer);
+    ServerReplyClientRequestMsg *generateServerReplyClientRequestMsg (bool isRedirection, int dest, int result=-1);
 };
 
 // The module class needs to be registered with OMNeT++
@@ -133,7 +134,7 @@ void Server::initialize()
     nextIndex.resize(servers_number, logEntries.size());
     matchIndex.resize(servers_number, 0);
     appendEntriesVect.resize(servers_number, nullptr);
-    clientRequestInfoVect.resize(clients_number, new ServerClientRequestInfo());
+    clientRequestInfoVect.resize(clients_number, ServerClientRequestInfo());
 
     // Timeouts
     electionTimeout = normal(5.0, 1);
@@ -421,27 +422,34 @@ void Server::handleClientRequestMsg(ClientRequestMsg *clientRequestMsg)
 {
     int clientAddr = clientRequestMsg->getSourceAddr();
 
+    // check if there exists a Leader
     if (currentLeader != -1){
+        // if the server that received the request is not the leader, it sends the address of the most recent known Leader
         if (currentLeader != getIndex()){
             EV << "server_" << getIndex() << " received a request from client_" << clientAddr << " even if it is not the Leader...server_"
                << getIndex() << " forwarding leader address to client_" << clientAddr << "\n";
-            char msgName[40];
-            sprintf(msgName, "reply_%d to client_%d request", currentTerm, clientAddr);
-            ServerReplyClientRequestMsg *replyClientRequestMsg = new ServerReplyClientRequestMsg(msgName);
-            replyClientRequestMsg->setSourceAddr(getIndex());
-            replyClientRequestMsg->setDestAddr(clientAddr);
-            replyClientRequestMsg->setLeaderAddr(currentLeader);
-            send((ServerReplyClientRequestMsg *)replyClientRequestMsg, "gate$o", getIndex());
-        }else{
-            // TODO: implement serialNumber handling (same request should not be re-executed)
-            int entryIndex = logEntries.size(); // remember marker at position 0
-            int entryTerm = currentTerm;
-            int serialNumber = clientRequestMsg->getSerialNumber();
-            Command entryCommand = clientRequestMsg->getCommand();
-            EV << "server_" << getIndex() << " received a request from client_" << clientAddr
-               << " (command: " << entryCommand << "; serialNumber=" << serialNumber <<")\n";
-            logEntries.push_back(LogEntry(entryIndex, entryTerm, entryCommand));
-            matchIndex[getIndex()] = entryIndex;
+            ServerReplyClientRequestMsg * replyClientRequestMsg = generateServerReplyClientRequestMsg(false, clientAddr);
+            send(replyClientRequestMsg, "gate$o", getIndex());
+
+        }
+        else{  // the current Leader received the request
+            // if the request has been already executed then the Leader immediately sends a response
+            ServerClientRequestInfo requestInfo = clientRequestInfoVect[clientAddr];
+            if (requestInfo.serialNumber == clientRequestMsg->getSerialNumber()){
+                ServerReplyClientRequestMsg * replyClientRequestMsg = generateServerReplyClientRequestMsg(false, clientAddr, requestInfo.result);
+                EV << "server_" << getIndex() << " already received this request from client_" << clientAddr << "...server_"
+                   << getIndex() << " forwarding result to client_" << clientAddr << "\n";
+                send(replyClientRequestMsg, "gate$o", getIndex());
+            }else{
+                int entryIndex = logEntries.size(); // remember marker at position 0
+                int entryTerm = currentTerm;
+                int serialNumber = clientRequestMsg->getSerialNumber();
+                Command entryCommand = clientRequestMsg->getCommand();
+                EV << "server_" << getIndex() << " received a request from client_" << clientAddr
+                   << " (command: " << entryCommand << "; serialNumber=" << serialNumber <<")\n";
+                logEntries.push_back(LogEntry(entryIndex, entryTerm, entryCommand, clientAddr, serialNumber));
+                matchIndex[getIndex()] = entryIndex;
+            }
         }
     }
 
@@ -551,6 +559,16 @@ void Server::updateStateMachine(int oldCommitIndex, int newCommitIndex)
         if (!varUpdated){
             stateMachine.push_back(Command(commandVar,commandValue));
         }
+        int clientAddr = (*it).source;
+        // storing the result of the command execution in order to reply immediately if Client sent again the same request
+        // (as a symbolic result we insert the command value)
+        clientRequestInfoVect[clientAddr] = ServerClientRequestInfo((*it).serialNumber, commandValue);
+        // forwarding the response of the executed command only if Server is the Leader (command executed when applied to state machine)
+        if(getIndex() == currentLeader){
+            EV << "server_" << getIndex() << " forwarding result to client_" << clientAddr << "\n";
+            ServerReplyClientRequestMsg * replyMsg = generateServerReplyClientRequestMsg(false, clientAddr, commandValue);
+            send(replyMsg, "gate$o", getIndex());
+        }
     }
     lastApplied = newCommitIndex;
 }
@@ -633,5 +651,20 @@ ServerAppendEntriesMsg *Server::generateAppendEntriesMsg(bool isLeaderheartbeat,
         msg->setEntries(entries);
     }
     return msg;
+}
+
+
+// isRedirection is true if the Client sent the request to the wrong server (not the leader), thus the Server should send the address of the most recent Leader
+ServerReplyClientRequestMsg * Server::generateServerReplyClientRequestMsg (bool isRedirection, int dest, int result)
+{
+    char msgName[40];
+    sprintf(msgName, "reply_%d", currentTerm);
+    ServerReplyClientRequestMsg *replyClientRequestMsg = new ServerReplyClientRequestMsg(msgName);
+    replyClientRequestMsg->setSourceAddr(getIndex());
+    replyClientRequestMsg->setDestAddr(dest);
+    replyClientRequestMsg->setLeaderAddr(currentLeader);
+    if (!isRedirection)
+        replyClientRequestMsg->setResult(result);
+    return replyClientRequestMsg;
 }
 
