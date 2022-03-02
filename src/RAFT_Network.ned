@@ -23,8 +23,10 @@ simple Server
 {
     parameters:
         @display("i=device/server");
-        int servers_number = default(5);
-        int clients_number = default(2);
+        int servers_number = default(5);		// total number of servers
+        int clients_number = default(2);		// total number of clients
+        int failureProbability = default(1);	// probability of failure (value between 0 and 100)
+        int recoveryProbability = default(1);	// probability of recovery from failure (value between 0 and 100)
     gates:
         inout gate[];
 }

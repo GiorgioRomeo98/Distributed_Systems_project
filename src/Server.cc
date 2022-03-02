@@ -30,18 +30,26 @@ class Server: public cSimpleModule
   private:
     int servers_number;
     int clients_number;
+    int failureProbability;
+    int recoveryProbability;
 
     serverState state = FOLLOWER;
 
     // A server remains in follower state as long as it receives valid notifications (RPCs) from a leader or candidate.
-    simtime_t electionTimeout;          // timeout to pass from FOLLOWER state towards CANDIDATE state
-    cMessage *electionTimeoutEvent;     // holds pointer to the electionTimeout self-message
+    simtime_t electionTimeout;              // timeout to pass from FOLLOWER state towards CANDIDATE state
+    cMessage *electionTimeoutEvent;         // holds pointer to the electionTimeout self-message
 
-    simtime_t heartbeatTimeout;          // timeout to make current Leader send heartbeat messages to other servers
-    cMessage *heartbeatTimeoutEvent;     // holds pointer to the electionTimeout self-message
+    simtime_t heartbeatTimeout;             // timeout to make current Leader send heartbeat messages to other servers
+    cMessage *heartbeatTimeoutEvent;        // holds pointer to the electionTimeout self-message
 
-    simtime_t appendEntriesTimeout;     // timeout to make current Leader send new log entries to other servers
-    cMessage *appendEntriesTimeoutEvent;// holds pointer to the appendEntriesTimeout self-message
+    simtime_t appendEntriesTimeout;         // timeout to make current Leader send new log entries to other servers
+    cMessage *appendEntriesTimeoutEvent;    // holds pointer to the appendEntriesTimeout self-message
+
+    simtime_t checkFailureTimeout;          // timeout to check if the server failed
+    cMessage *checkFailureTimeoutEvent;     // holds pointer to the checkFailureTimeout self-message
+
+    simtime_t checkRecoveryTimeout;          // timeout to check if the server recovered from its failure
+    cMessage *checkRecoveryTimeoutEvent;     // holds pointer to the checkRecoveryTimeout self-message
 
     ServerRequestVoteMsg *requestVoteMsg;
     ServerAppendEntriesMsg * appendEntriesMsg;
@@ -75,6 +83,8 @@ class Server: public cSimpleModule
     virtual void handleMessage(cMessage *msg) override;
     void forwardMessage(cMessage *msg);
     void appendEntries(bool isLeaderheartbeat);
+    void handleFailureTimeoutEvent();
+    void handleRecoveryTimeoutEvent();
     void handleElectionTimeoutEvent();
     void handleLeaderheartbeatTimeoutEvent();
     void handleRequestVoteMsg(ServerRequestVoteMsg *requestVoteMsg);
@@ -87,8 +97,9 @@ class Server: public cSimpleModule
     void processAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg);
     void handleReplyHeartbeatMsg(ServerReplyAppendEntriesMsg *replyAppendEntriesMsg);
     void handleReplyAppendEntriesMsg(ServerReplyAppendEntriesMsg *replyAppendEntriesMsg);
-    void passToFollowerState(int updatedTerm);
+    void passToFollowerState(int updatedTerm=-1);
     void passToLeaderState();
+    void passToFailedState();
     void updateCommitIndex();
     void updateStateMachine(int oldCommitIndex, int newCommitIndex);
     ServerRequestVoteMsg *generateRequestVoteMsg();
@@ -104,6 +115,7 @@ Define_Module(Server);
 Server::Server()
 {
     electionTimeoutEvent = heartbeatTimeoutEvent = appendEntriesTimeoutEvent = nullptr;
+    checkFailureTimeoutEvent = checkRecoveryTimeoutEvent = nullptr;
     requestVoteMsg = nullptr;
 }
 
@@ -114,6 +126,8 @@ Server::~Server()
     cancelAndDelete(electionTimeoutEvent);
     cancelAndDelete(heartbeatTimeoutEvent);
     cancelAndDelete(appendEntriesTimeoutEvent);
+    cancelAndDelete(checkFailureTimeoutEvent);
+    cancelAndDelete(checkRecoveryTimeoutEvent);
     delete(requestVoteMsg);
     for (int i=0; i < servers_number; i++)
         delete appendEntriesVect[i];
@@ -131,6 +145,8 @@ void Server::initialize()
 
     servers_number = par("servers_number");
     clients_number = par("clients_number");
+    failureProbability = par("failureProbability");
+    recoveryProbability = par("recoveryProbability");
     nextIndex.resize(servers_number, logEntries.size());
     matchIndex.resize(servers_number, 0);
     appendEntriesVect.resize(servers_number, nullptr);
@@ -143,6 +159,10 @@ void Server::initialize()
     heartbeatTimeoutEvent = new cMessage("heartbeatTimeoutEvent");
     appendEntriesTimeout = 4.5;
     appendEntriesTimeoutEvent = new cMessage("appendEntriesTimeoutEvent");
+    checkFailureTimeout = 1;
+    checkFailureTimeoutEvent = new cMessage("checkFailureTimeoutEvent");
+    checkRecoveryTimeout = 1;
+    checkRecoveryTimeoutEvent = new cMessage("checkRecoveryTimeoutEvent");
 
     // server's attributes to watch during simulation
     WATCH(currentTerm);
@@ -158,14 +178,22 @@ void Server::initialize()
     WATCH(state);
 
     scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
+    scheduleAt(simTime()+checkFailureTimeout, checkFailureTimeoutEvent);
 }
 
 
-
+// TODO: implement losing packet event
 void Server::handleMessage(cMessage *msg)
 {
     // The handleMessage() method is called whenever a message arrives at the module.
-    if (msg == electionTimeoutEvent)
+
+    if (msg == checkRecoveryTimeoutEvent)
+        handleRecoveryTimeoutEvent();
+    else if (state == FAILED)
+        delete msg;
+    else if (msg == checkFailureTimeoutEvent)
+        handleFailureTimeoutEvent();
+    else if (msg == electionTimeoutEvent)
         handleElectionTimeoutEvent();
     else if (msg == heartbeatTimeoutEvent)
         appendEntries(true);
@@ -185,6 +213,31 @@ void Server::handleMessage(cMessage *msg)
         handleClientRequestMsg((ClientRequestMsg *) msg);
     else
         delete msg;
+
+}
+
+
+
+void Server::handleFailureTimeoutEvent()
+{
+    if (intuniform(1, 100) <= failureProbability)
+        passToFailedState();
+    else
+        scheduleAt(simTime()+checkFailureTimeout, checkFailureTimeoutEvent);
+
+}
+
+
+
+void Server::handleRecoveryTimeoutEvent()
+{
+    if (intuniform(1, 100) <= recoveryProbability){
+        bubble("Back to life");
+        EV << "server_" << getIndex() << " has recovered from failure!\n";
+        passToFollowerState();
+        scheduleAt(simTime()+checkFailureTimeout, checkFailureTimeoutEvent);
+    }else
+        scheduleAt(simTime()+checkRecoveryTimeout, checkRecoveryTimeoutEvent);
 
 }
 
@@ -600,6 +653,22 @@ void Server::passToLeaderState()
     cancelEvent(electionTimeoutEvent);
     scheduleAt(simTime()+appendEntriesTimeout, appendEntriesTimeoutEvent);
     appendEntries(true);
+}
+
+
+void Server::passToFailedState()
+{
+    bubble("Failure!!!");
+    EV << "server_" << getIndex() << " has failed!\n";
+
+    state = FAILED;
+    votedFor = -1;
+    votesNumber = 0;
+
+    cancelEvent(electionTimeoutEvent);
+    cancelEvent(heartbeatTimeoutEvent);
+    cancelEvent(appendEntriesTimeoutEvent);
+    scheduleAt(simTime()+checkRecoveryTimeout, checkRecoveryTimeoutEvent);
 }
 
 
