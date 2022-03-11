@@ -32,6 +32,7 @@ class Server: public cSimpleModule
     int clients_number;
     int failureProbability;
     int recoveryProbability;
+    int messageLossProbability;
 
     serverState state = FOLLOWER;
 
@@ -147,6 +148,7 @@ void Server::initialize()
     clients_number = par("clients_number");
     failureProbability = par("failureProbability");
     recoveryProbability = par("recoveryProbability");
+    messageLossProbability = par("messageLossProbability");
     nextIndex.resize(servers_number, logEntries.size());
     matchIndex.resize(servers_number, 0);
     appendEntriesVect.resize(servers_number, nullptr);
@@ -199,6 +201,11 @@ void Server::handleMessage(cMessage *msg)
         appendEntries(true);
     else if (msg == appendEntriesTimeoutEvent)
         appendEntries(false);
+    else if (intuniform(1, 100) <= messageLossProbability){
+        bubble("Message loss!");
+        EV << "Server_" << getIndex() << " lost message " << msg << "\n";
+        delete msg;
+    }
     else if (dynamic_cast<ServerRequestVoteMsg *>(msg))
         handleRequestVoteMsg((ServerRequestVoteMsg *) msg);
     else if (dynamic_cast<ServerReplyVoteMsg *>(msg))
@@ -212,7 +219,7 @@ void Server::handleMessage(cMessage *msg)
     else if (dynamic_cast<ClientRequestMsg *>(msg))
         handleClientRequestMsg((ClientRequestMsg *) msg);
     else
-        delete msg;
+        throw "impossible case";
 
 }
 
