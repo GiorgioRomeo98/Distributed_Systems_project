@@ -23,8 +23,6 @@ simple Server
 {
     parameters:
         @display("i=device/server");
-        int servers_number = default(5);			// total number of servers
-        int clients_number = default(2);			// total number of clients
         int failureProbability = default(1);		// probability of failure (value between 0 and 100)
         int recoveryProbability = default(1);		// probability of recovery from failure (value between 0 and 100)
         int messageLossProbability = default(1);	// probability of losing a message (value between 0 and 100)
@@ -35,8 +33,7 @@ simple Server
 simple Client
 {
     parameters:
-        int addr = default(-1);		// client address
-        int servers_number = default(5);	// used to randomly send a request to one of the server
+        int addr = default(-1);		// client address	
         @display("i=device/pc2");
     gates:
         inout gate;

@@ -16,7 +16,7 @@ class Client: public cSimpleModule
   private:
     int addr;               // client source address
     int serialNumber;       // request message serial number
-    int servers_number;     // total number of servers
+    int servers_number;     // total number of servers (used to randomly send a request to one of the server)
     int serverLeader;       // address of the most recent leader
 
     Command currentCommand;
@@ -57,7 +57,7 @@ void Client::initialize()
 
     addr = getIndex();
     serialNumber = 0;
-    servers_number = par("servers_number");
+    servers_number = getParentModule()->par("servers_number");
     serverLeader = -1;
 
     // Timeouts

@@ -144,8 +144,8 @@ void Server::initialize()
     // set the begin marker of logEntrieslist
     logEntries.push_front(LogEntry());
 
-    servers_number = par("servers_number");
-    clients_number = par("clients_number");
+    servers_number = getParentModule()->par("servers_number");
+    clients_number = getParentModule()->par("clients_number");
     failureProbability = par("failureProbability");
     recoveryProbability = par("recoveryProbability");
     messageLossProbability = par("messageLossProbability");
@@ -335,8 +335,9 @@ void Server::handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
     currentLeader = appendEntriesMsg->getLeaderId();
     // check if it is a leader heartbeat message (log entries should be empty)
-    if (appendEntriesMsg->getEntries().empty())
-        processHeartbeatMsg(appendEntriesMsg);
+    if (appendEntriesMsg->getEntries().empty()){
+        EV << "SUS\n";
+        processHeartbeatMsg(appendEntriesMsg);}
     else
         processAppendEntriesMsg(appendEntriesMsg);
 
@@ -358,8 +359,10 @@ void Server::processHeartbeatMsg(ServerAppendEntriesMsg *appendEntriesMsg)
         passToFollowerState(appendEntriesMsg->getTerm());
         int oldCommitIndex = commitIndex;
         if (commitIndex < appendEntriesMsg->getLeaderCommit()){
-            commitIndex = appendEntriesMsg->getLeaderCommit();
-            updateStateMachine(oldCommitIndex,  commitIndex);
+            oldCommitIndex = commitIndex;
+            commitIndex = std::min(appendEntriesMsg->getLeaderCommit(), logEntries.back().index);
+            if (oldCommitIndex < commitIndex)
+                updateStateMachine(oldCommitIndex,  commitIndex);
         }
     }
 
