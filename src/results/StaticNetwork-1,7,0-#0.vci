@@ -1,0 +1,34 @@
+file 1900 1647112364                                            
+version 2
+run StaticNetwork-0-20220312-20:12:39-12308
+attr configname StaticNetwork
+attr datetime 20220312-20:12:39
+attr experiment StaticNetwork
+attr inifile omnetpp.ini
+attr iterationvars "$0=1, $1=7, $2=0"
+attr iterationvarsf 1,7,0-
+attr measurement "$0=1, $1=7, $2=0"
+attr network RAFT_Network
+attr processid 12308
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+param **.failureProbability 1
+param **.recoveryProbability 7
+param **.messageLossProbability 0
+param **.clients_number 5
+param **.cloud.propDelay 0.1s
+
+vector 0 RAFT_Network.server[0] serverState ETV
+vector 1 RAFT_Network.server[1] serverState ETV
+vector 2 RAFT_Network.server[2] serverState ETV
+vector 3 RAFT_Network.server[3] serverState ETV
+vector 4 RAFT_Network.server[4] serverState ETV
+0	831 213 0 674 0 50 12 -1 2 4 12
+1	1044 215 0 674 0 50 12 -1 0 -2 2
+2	1259 167 0 674 0 50 8 0 2 6 10
+3	1426 355 0 674 0 50 22 -1 0 -6 6
+4	1781 117 0 674 0 50 6 0 0 0 0
+

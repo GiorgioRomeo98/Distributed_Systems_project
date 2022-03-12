@@ -52,9 +52,6 @@ class Server: public cSimpleModule
     simtime_t checkRecoveryTimeout;          // timeout to check if the server recovered from its failure
     cMessage *checkRecoveryTimeoutEvent;     // holds pointer to the checkRecoveryTimeout self-message
 
-    ServerRequestVoteMsg *requestVoteMsg;
-    ServerAppendEntriesMsg * appendEntriesMsg;
-
 
     // Persistent state on each server
     int currentTerm = 0;        //latest term server has seen (initialized to 0 on first boot, increases monotonically)
@@ -74,6 +71,8 @@ class Server: public cSimpleModule
     std::vector<ServerAppendEntriesMsg *> appendEntriesVect;        // for each server, current appendEntries message sent by the Leader
     std::vector<ServerClientRequestInfo> clientRequestInfoVect;     // for each server, info about the most recent executed client request
 
+    // statistics to monitor
+    cOutVector stateVector;
 
   public:
     Server();
@@ -82,6 +81,7 @@ class Server: public cSimpleModule
   protected:
     virtual void initialize() override;
     virtual void handleMessage(cMessage *msg) override;
+    virtual void finish() override;
     void forwardMessage(cMessage *msg);
     void appendEntries(bool isLeaderheartbeat);
     void handleFailureTimeoutEvent();
@@ -117,7 +117,6 @@ Server::Server()
 {
     electionTimeoutEvent = heartbeatTimeoutEvent = appendEntriesTimeoutEvent = nullptr;
     checkFailureTimeoutEvent = checkRecoveryTimeoutEvent = nullptr;
-    requestVoteMsg = nullptr;
 }
 
 
@@ -129,7 +128,6 @@ Server::~Server()
     cancelAndDelete(appendEntriesTimeoutEvent);
     cancelAndDelete(checkFailureTimeoutEvent);
     cancelAndDelete(checkRecoveryTimeoutEvent);
-    delete(requestVoteMsg);
     for (int i=0; i < servers_number; i++)
         delete appendEntriesVect[i];
 
@@ -179,12 +177,16 @@ void Server::initialize()
     WATCH_VECTOR(matchIndex);
     WATCH(state);
 
+    // record initial statistic values
+    stateVector.setName("serverState");
+    stateVector.record(state);
+
     scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
     scheduleAt(simTime()+checkFailureTimeout, checkFailureTimeoutEvent);
 }
 
 
-// TODO: implement losing packet event
+
 void Server::handleMessage(cMessage *msg)
 {
     // The handleMessage() method is called whenever a message arrives at the module.
@@ -225,6 +227,13 @@ void Server::handleMessage(cMessage *msg)
 
 
 
+void Server::finish()
+{
+    stateVector.record(state);
+}
+
+
+
 void Server::handleFailureTimeoutEvent()
 {
     if (intuniform(1, 100) <= failureProbability)
@@ -257,7 +266,9 @@ void Server::handleElectionTimeoutEvent()
     bubble("Starting new election phase");
     EV << "Elapsed leader election timeout for server_" << getIndex() << "\n";
     currentTerm++;
+    stateVector.record(state);
     state = CANDIDATE;
+    stateVector.record(state);
     votedFor = getIndex();
     votesNumber++;
     scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
@@ -355,7 +366,7 @@ void Server::processHeartbeatMsg(ServerAppendEntriesMsg *appendEntriesMsg)
     bool success = true;
     if (appendEntriesMsg->getTerm() < currentTerm)
         success = false;
-    if (appendEntriesMsg->getTerm() >= currentTerm){
+    else{
         passToFollowerState(appendEntriesMsg->getTerm());
         int oldCommitIndex = commitIndex;
         if (commitIndex < appendEntriesMsg->getLeaderCommit()){
@@ -524,9 +535,7 @@ void Server::handleClientRequestMsg(ClientRequestMsg *clientRequestMsg)
 // Invoked by candidates to gather votes
 void Server::sendRequestVoteMsg()
 {
-    // to free memory
-    delete requestVoteMsg;
-    requestVoteMsg = generateRequestVoteMsg();
+    ServerRequestVoteMsg *requestVoteMsg = generateRequestVoteMsg();
 
     for (int i = 0; i < servers_number; i++)
         if (i != getIndex()){
@@ -534,6 +543,7 @@ void Server::sendRequestVoteMsg()
             // Duplicate message and send the copy
             send((ServerRequestVoteMsg *)requestVoteMsg->dup(), "gate$o", i);
         }
+    delete requestVoteMsg;
 }
 
 
@@ -640,10 +650,15 @@ void Server::updateStateMachine(int oldCommitIndex, int newCommitIndex)
 
 void Server::passToFollowerState(int updatedTerm)
 {
-    state = FOLLOWER;
+    if(currentTerm < updatedTerm or state!=FOLLOWER){
+        stateVector.record(state);
+        state = FOLLOWER;
+        stateVector.record(state);
+    }
     currentTerm = updatedTerm;
     votedFor = -1;
     votesNumber = 0;
+
     cancelEvent(electionTimeoutEvent);
     scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
 }
@@ -652,10 +667,13 @@ void Server::passToFollowerState(int updatedTerm)
 
 void Server::passToLeaderState()
 {
+    stateVector.record(state);
     state = LEADER;
+    stateVector.record(state);
     currentLeader = getIndex();
     bubble("Now I am the leader!");
     EV << "server_" << getIndex() << " is the new leader after obtaining " << votesNumber << " votes\n";
+
 
     // re-initializing variables
     votedFor = -1;
@@ -671,9 +689,11 @@ void Server::passToFailedState()
     bubble("Failure!!!");
     EV << "server_" << getIndex() << " has failed!\n";
 
+    stateVector.record(state);
     state = FAILED;
     votedFor = -1;
     votesNumber = 0;
+    stateVector.record(state);
 
     cancelEvent(electionTimeoutEvent);
     cancelEvent(heartbeatTimeoutEvent);
