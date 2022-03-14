@@ -1,15 +1,15 @@
-file 1900 1647112364                                            
+file 5160 1647253220                                            
 version 2
-run StaticNetwork-0-20220312-20:12:39-12308
+run StaticNetwork-0-20220314-11:20:17-10620
 attr configname StaticNetwork
-attr datetime 20220312-20:12:39
+attr datetime 20220314-11:20:17
 attr experiment StaticNetwork
 attr inifile omnetpp.ini
 attr iterationvars "$0=1, $1=7, $2=0"
 attr iterationvarsf 1,7,0-
 attr measurement "$0=1, $1=7, $2=0"
 attr network RAFT_Network
-attr processid 12308
+attr processid 10620
 attr repetition 0
 attr replication #0
 attr resultdir results
@@ -26,9 +26,19 @@ vector 1 RAFT_Network.server[1] serverState ETV
 vector 2 RAFT_Network.server[2] serverState ETV
 vector 3 RAFT_Network.server[3] serverState ETV
 vector 4 RAFT_Network.server[4] serverState ETV
-0	831 213 0 674 0 50 12 -1 2 4 12
-1	1044 215 0 674 0 50 12 -1 0 -2 2
-2	1259 167 0 674 0 50 8 0 2 6 10
-3	1426 355 0 674 0 50 22 -1 0 -6 6
-4	1781 117 0 674 0 50 6 0 0 0 0
+vector 5 RAFT_Network.client[3] responseTime ETV
+vector 6 RAFT_Network.client[1] responseTime ETV
+vector 7 RAFT_Network.client[0] responseTime ETV
+vector 8 RAFT_Network.client[4] responseTime ETV
+vector 9 RAFT_Network.client[2] responseTime ETV
+0	1081 363 0 1461 0 100 18 -1 2 12 24
+1	1444 219 0 1461 0 100 12 -1 0 -2 2
+2	1663 269 0 1461 0 100 14 -1 2 4 12
+3	1932 663 0 1461 0 100 38 -1 0 -10 10
+4	2595 217 0 1461 0 100 12 -1 0 -2 2
+5	2812 403 148 1405 11.722664811799 96.619770964358 13 3.722664811799 20.802669484104 88.619770964358 1014.0114649541
+6	3215 375 149 1406 11.738065675979 96.635171828538 12 3.738065675979 34.292239320445 88.635171828538 1473.8253847599
+7	3590 435 151 1408 11.767333894531 96.66444004709 14 3.767333894531 25.302669484104 88.66444004709 978.71869716141
+8	4025 670 154 1412 11.817147879912 96.714254032471 23 0 20.802669484104 88.714254032471 791.87248506871
+9	4695 463 155 1413 11.87261176555 96.769717918109 15 3.87261176555 20.802669484104 88.769717918109 792.29898901827
 

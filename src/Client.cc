@@ -25,6 +25,9 @@ class Client: public cSimpleModule
     cMessage *requestMsgTimeoutEvent;   // holds pointer to the requestMsgTimeout self-message
     ClientRequestMsg *currentRequestMsg;
 
+    // statistics to monitor
+    cOutVector responseTimeVector;
+
   public:
     Client();
     virtual ~Client();
@@ -70,6 +73,8 @@ void Client::initialize()
     // schedule the time when client will send its first request
     scheduleAt(simTime()+requestMsgTimeout, requestMsgTimeoutEvent);
 
+    responseTimeVector.setName("responseTime");
+
 
 }
 
@@ -93,8 +98,13 @@ void Client::handleRequestMsgTimeoutEvent(cMessage *timeout)
     if (currentRequestMsg == nullptr){
         bubble("Sending new request");
         currentRequestMsg = generateRequestMsg();
-    }else // Re-sending most recent request
+    }else{
+        // Re-sending most recent request to one of the servers randomly (Client assumes the Leader failed)
         bubble("Resending request");
+        int serverAddr = intuniform(0, servers_number-1);
+        currentRequestMsg->setDestAddr(serverAddr);
+    }
+
 
     sendRequest(currentRequestMsg);
     scheduleAt(simTime()+requestMsgTimeout, requestMsgTimeoutEvent);
@@ -118,6 +128,7 @@ void Client::handleServerReplyClientRequestMsg(ServerReplyClientRequestMsg *serv
     }else{
         EV << "client_" << getIndex() << " received a result=" << serverReplyClientRequestMsg->getResult() <<  " from server_" << replyMostRecentLeader << "\n";
         /* Processing result */
+        responseTimeVector.record(simTime() - currentRequestMsg->getCreationTime());
 
         bubble("Sending new request");
         //free memory and generate new request message
