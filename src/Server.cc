@@ -71,8 +71,22 @@ class Server: public cSimpleModule
     std::vector<ServerAppendEntriesMsg *> appendEntriesVect;        // for each server, current appendEntries message sent by the Leader
     std::vector<ServerClientRequestInfo> clientRequestInfoVect;     // for each server, info about the most recent executed client request
 
-    // statistics to monitor
+    // statistics to monitor and associated vector
     cOutVector stateVector;
+    cOutVector totMsgSentVector;
+    cOutVector totMsgReceivedVector;
+    cOutVector totRequestVoteMsgSentVector;
+    cOutVector totAppendEntriesMsgSentVector;
+    cOutVector totReplyToClientRequestMsgSentVector;
+    cOutVector totReplyToRequestVoteMsgSentVector;
+    cOutVector totReplyToAppendEntriesMsgSentVector;
+    int totMsgSent;
+    int totMsgReceived;
+    int totRequestVoteMsgSent;
+    int totAppendEntriesMsgSent;
+    int totReplyToClientRequestMsgSent;
+    int totReplyToRequestVoteMsgSent;
+    int totReplyToAppendEntriesMsgSent;
 
   public:
     Server();
@@ -177,10 +191,29 @@ void Server::initialize()
     WATCH_VECTOR(matchIndex);
     WATCH(state);
 
-    // record initial statistic values
+    // assign name to statistics variables
     stateVector.setName("serverState");
+    totMsgSentVector.setName("totMsgSent");
+    totMsgReceivedVector.setName("totMsgReceived");
+    totRequestVoteMsgSentVector.setName("totRequestVoteMsgSent");
+    totAppendEntriesMsgSentVector.setName("totAppendEntriesMsgSent");
+    totReplyToClientRequestMsgSentVector.setName("totReplyToClientRequestMsgSent");
+    totReplyToRequestVoteMsgSentVector.setName("totReplyToRequestVoteMsgSent");
+    totReplyToAppendEntriesMsgSentVector.setName("totReplyToAppendEntriesMsgSent");
+
+    // set initial statistics variables
+    totMsgSent = 0;
+    totMsgReceived = 0;
+    totRequestVoteMsgSent = 0;
+    totAppendEntriesMsgSent = 0;
+    totReplyToClientRequestMsgSent = 0;
+    totReplyToRequestVoteMsgSent = 0;
+    totReplyToAppendEntriesMsgSent = 0;
+
+    // record initial value of state variable
     stateVector.record(state);
 
+    // start Leader election timeout and check failure timeout
     scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
     scheduleAt(simTime()+checkFailureTimeout, checkFailureTimeoutEvent);
 }
@@ -193,8 +226,10 @@ void Server::handleMessage(cMessage *msg)
 
     if (msg == checkRecoveryTimeoutEvent)
         handleRecoveryTimeoutEvent();
-    else if (state == FAILED)
+    else if (state == FAILED){
+        totMsgReceivedVector.record(++totMsgReceived);
         delete msg;
+    }
     else if (msg == checkFailureTimeoutEvent)
         handleFailureTimeoutEvent();
     else if (msg == electionTimeoutEvent)
@@ -206,6 +241,7 @@ void Server::handleMessage(cMessage *msg)
     else if (intuniform(1, 100) <= messageLossProbability){
         bubble("Message loss!");
         EV << "Server_" << getIndex() << " lost message " << msg << "\n";
+        totMsgReceivedVector.record(++totMsgReceived);
         delete msg;
     }
     else if (dynamic_cast<ServerRequestVoteMsg *>(msg))
@@ -250,7 +286,7 @@ void Server::handleRecoveryTimeoutEvent()
     if (intuniform(1, 100) <= recoveryProbability){
         bubble("Back to life");
         EV << "server_" << getIndex() << " has recovered from failure!\n";
-        passToFollowerState();
+        passToFollowerState(currentTerm);
         scheduleAt(simTime()+checkFailureTimeout, checkFailureTimeoutEvent);
     }else
         scheduleAt(simTime()+checkRecoveryTimeout, checkRecoveryTimeoutEvent);
@@ -287,6 +323,8 @@ void Server::handleLeaderheartbeatTimeoutEvent()
             EV << "Server_" << getIndex() << " forwarding message " << heartbeatAppendEntries << " towards server_" << i << "\n";
             // send message
             send((ServerAppendEntriesMsg *)heartbeatAppendEntries, "gate$o", i);
+            totMsgSentVector.record(++totMsgSent);
+            totAppendEntriesMsgSentVector.record(++totAppendEntriesMsgSent);
         }
     scheduleAt(simTime()+heartbeatTimeout, heartbeatTimeoutEvent);
 
@@ -297,6 +335,7 @@ void Server::handleLeaderheartbeatTimeoutEvent()
 // Server receives a ServerRequestVoteMsg
 void Server::handleRequestVoteMsg(ServerRequestVoteMsg *requestVoteMsg)
 {
+    totMsgReceivedVector.record(++totMsgReceived);
     if (requestVoteMsg->getTerm() > currentTerm)
         passToFollowerState(requestVoteMsg->getTerm());
 
@@ -308,6 +347,7 @@ void Server::handleRequestVoteMsg(ServerRequestVoteMsg *requestVoteMsg)
 // Server receives a ServerReplyVoteMsg
 void Server::handleReplyVoteMsg(ServerReplyVoteMsg *replyVoteMsg)
 {
+    totMsgReceivedVector.record(++totMsgReceived);
     if (replyVoteMsg->getVoteGranted() and state == CANDIDATE){
         votesNumber++;
         int majority = (servers_number/2) + 1;
@@ -335,6 +375,8 @@ void Server::appendEntries(bool isLeaderheartbeat)
                     // storing the message and sending a copy
                     appendEntriesVect[i] = msg;
                     send((ServerAppendEntriesMsg *)msg->dup(), "gate$o", i);
+                    totMsgSentVector.record(++totMsgSent);
+                    totAppendEntriesMsgSentVector.record(++totAppendEntriesMsgSent);
                 }
         scheduleAt(simTime()+appendEntriesTimeout, appendEntriesTimeoutEvent);
     }
@@ -344,11 +386,11 @@ void Server::appendEntries(bool isLeaderheartbeat)
 
 void Server::handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
+    totMsgReceivedVector.record(++totMsgReceived);
     currentLeader = appendEntriesMsg->getLeaderId();
     // check if it is a leader heartbeat message (log entries should be empty)
-    if (appendEntriesMsg->getEntries().empty()){
-        EV << "SUS\n";
-        processHeartbeatMsg(appendEntriesMsg);}
+    if (appendEntriesMsg->getEntries().empty())
+        processHeartbeatMsg(appendEntriesMsg);
     else
         processAppendEntriesMsg(appendEntriesMsg);
 
@@ -387,6 +429,8 @@ void Server::processHeartbeatMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 
     EV << "Server_" << getIndex() << " forwarding reply heartbeat message " << msg << " towards server_" << appendEntriesMsg->getLeaderId() << "\n";
     send(msg, "gate$o", appendEntriesMsg->getLeaderId());
+    totMsgSentVector.record(++totMsgSent);
+    totReplyToAppendEntriesMsgSentVector.record(++totReplyToAppendEntriesMsgSent);
 
 }
 
@@ -456,6 +500,8 @@ void Server::processAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
     msg->setIsHeartbeatReply(false);
     EV << "Server_" << getIndex() << " forwarding message "<< msg << " towards server_" << appendEntriesMsg->getLeaderId() << "\n";
     send(msg, "gate$o", appendEntriesMsg->getLeaderId());
+    totMsgSentVector.record(++totMsgSent);
+    totReplyToAppendEntriesMsgSentVector.record(++totReplyToAppendEntriesMsgSent);
 }
 
 
@@ -464,6 +510,7 @@ void Server::processAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
  */
 void Server::handleReplyHeartbeatMsg(ServerReplyAppendEntriesMsg *replyAppendEntriesMsg)
 {
+    totMsgReceivedVector.record(++totMsgReceived);
     int sourceAddr = replyAppendEntriesMsg->getSource();
     EV << "Server_" << getIndex() << " received heartbeat reply message " << replyAppendEntriesMsg << " from server_" << sourceAddr << "\n";
     if (!replyAppendEntriesMsg->getSuccess() and replyAppendEntriesMsg->getTerm() > currentTerm)
@@ -474,6 +521,7 @@ void Server::handleReplyHeartbeatMsg(ServerReplyAppendEntriesMsg *replyAppendEnt
 
 void Server::handleReplyAppendEntriesMsg(ServerReplyAppendEntriesMsg *replyAppendEntriesMsg)
 {
+    totMsgReceivedVector.record(++totMsgReceived);
     int sourceAddr = replyAppendEntriesMsg->getSource();
     EV << "Server_" << getIndex() << " received appendEntries reply message " << replyAppendEntriesMsg << " from server_" << sourceAddr << "\n";
     if (replyAppendEntriesMsg->getSuccess()){
@@ -494,6 +542,7 @@ void Server::handleReplyAppendEntriesMsg(ServerReplyAppendEntriesMsg *replyAppen
 
 void Server::handleClientRequestMsg(ClientRequestMsg *clientRequestMsg)
 {
+    totMsgReceivedVector.record(++totMsgReceived);
     int clientAddr = clientRequestMsg->getSourceAddr();
 
     // check if there exists a Leader
@@ -515,6 +564,15 @@ void Server::handleClientRequestMsg(ClientRequestMsg *clientRequestMsg)
                    << getIndex() << " forwarding result to client_" << clientAddr << "\n";
                 send(replyClientRequestMsg, "gate$o", getIndex());
             }else{
+                //if the request is already present (but not executed given the previous if statement), then do nothing, otherwise add a new log
+                std::list<LogEntry>::iterator it = logEntries.begin();
+                for(advance(it,commitIndex); it != logEntries.end(); it++)
+                    if ((*it).source == clientAddr and (*it).serialNumber == clientRequestMsg->getSerialNumber()){
+                        delete clientRequestMsg;
+                        return;
+                    }
+
+                // add new log entry
                 int entryIndex = logEntries.size(); // remember marker at position 0
                 int entryTerm = currentTerm;
                 int serialNumber = clientRequestMsg->getSerialNumber();
@@ -542,6 +600,8 @@ void Server::sendRequestVoteMsg()
             EV << "Server_" << getIndex() << " forwarding message " << requestVoteMsg << " towards server_" << i << "\n";
             // Duplicate message and send the copy
             send((ServerRequestVoteMsg *)requestVoteMsg->dup(), "gate$o", i);
+            totMsgSentVector.record(++totMsgSent);
+            totRequestVoteMsgSentVector.record(++totRequestVoteMsgSent);
         }
     delete requestVoteMsg;
 }
@@ -578,6 +638,8 @@ void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
     EV << "Server_" << getIndex() << " forwarding message " << replyVoteMsg << " towards server_" << dest << "\n";
     // Duplicate message and send the copy
     send(replyVoteMsg, "gate$o", dest);
+    totMsgSentVector.record(++totMsgSent);
+    totReplyToClientRequestMsgSentVector.record(++totReplyToClientRequestMsgSent);
 }
 
 
@@ -641,6 +703,8 @@ void Server::updateStateMachine(int oldCommitIndex, int newCommitIndex)
             EV << "server_" << getIndex() << " forwarding result to client_" << clientAddr << "\n";
             ServerReplyClientRequestMsg * replyMsg = generateServerReplyClientRequestMsg(false, clientAddr, commandValue);
             send(replyMsg, "gate$o", getIndex());
+            totMsgSentVector.record(++totMsgSent);
+            totReplyToClientRequestMsgSentVector.record(++totReplyToClientRequestMsgSent);
         }
     }
     lastApplied = newCommitIndex;
