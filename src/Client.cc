@@ -21,7 +21,7 @@ class Client: public cSimpleModule
 
     Command currentCommand;
 
-    simtime_t requestMsgTimeout;        // timeout
+    simtime_t requestMsgTimeout;        // timeout to make the client resend a request (or send the initial one)
     cMessage *requestMsgTimeoutEvent;   // holds pointer to the requestMsgTimeout self-message
     ClientRequestMsg *currentRequestMsg;
 

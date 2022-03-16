@@ -28,11 +28,11 @@ class Server: public cSimpleModule
 {
 
   private:
-    int servers_number;
-    int clients_number;
-    int failureProbability;
-    int recoveryProbability;
-    int messageLossProbability;
+    int servers_number;                 // total number of servers
+    int clients_number;                 // total number of clients
+    int failureProbability;             // probability of failure (value between 0 and 100)
+    int recoveryProbability;            // probability of recovery from failure (value between 0 and 100)
+    int messageLossProbability;         // probability of losing a message (value between 0 and 100)
 
     serverState state = FOLLOWER;
 
@@ -49,27 +49,28 @@ class Server: public cSimpleModule
     simtime_t checkFailureTimeout;          // timeout to check if the server failed
     cMessage *checkFailureTimeoutEvent;     // holds pointer to the checkFailureTimeout self-message
 
-    simtime_t checkRecoveryTimeout;          // timeout to check if the server recovered from its failure
-    cMessage *checkRecoveryTimeoutEvent;     // holds pointer to the checkRecoveryTimeout self-message
+    simtime_t checkRecoveryTimeout;         // timeout to check if the server recovered from its failure
+    cMessage *checkRecoveryTimeoutEvent;    // holds pointer to the checkRecoveryTimeout self-message
 
 
     // Persistent state on each server
-    int currentTerm = 0;        //latest term server has seen (initialized to 0 on first boot, increases monotonically)
-    int currentLeader = -1;     //index of the current leader
-    int votedFor = -1;          //candidateId that received vote in current term (or -1 if none)
-    int votesNumber = 0;
+    int currentTerm = 0;                //latest term server has seen (initialized to 0 on first boot, increases monotonically)
+    int currentLeader = -1;             //index of the current leader
+    int votedFor = -1;                  //candidateId that received vote in current term (or -1 if none)
+    int votesNumber = 0;                //number of received votes to be elected as a Leader
     std::list<LogEntry> logEntries;     //each entry contains commands for state machine, and term when entry was received by leader (first index is 1)
-    std::list<Command> stateMachine;   //server's state machine after commands executions
+    std::list<Command> stateMachine;    //server's state machine after commands executions
 
     // Volatile state on each server
     int commitIndex = 0; //index of highest log entry known to be committed (initialized to 0, increases monotonically)
     int lastApplied = 0; //index of highest log entry applied to state machine (initialized to 0, increases monotonically)
-
-    // Volatile state on leader (reinitialized after election)
-    std::vector<int> nextIndex;     //for each server, index of the next log entry to send to that server (initialized to leader last log index + 1)
-    std::vector<int> matchIndex;    //for each server, index of highest log entry known to be replicated on server (initialized to 0, increases monotonically)
     std::vector<ServerAppendEntriesMsg *> appendEntriesVect;        // for each server, current appendEntries message sent by the Leader
     std::vector<ServerClientRequestInfo> clientRequestInfoVect;     // for each server, info about the most recent executed client request
+
+    // Volatile state on leader (reinitialized after election)
+    std::vector<int> nextIndex;     // for each server, index of the next log entry to send to that server (initialized to leader last log index + 1)
+    std::vector<int> matchIndex;    // for each server, index of highest log entry known to be replicated on server (initialized to 0, increases monotonically)
+
 
     // statistics to monitor and associated vector
     cOutVector stateVector;

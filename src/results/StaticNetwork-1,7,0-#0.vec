@@ -1,14 +1,14 @@
 version 2
-run StaticNetwork-0-20220316-11:12:40-9004
+run StaticNetwork-0-20220316-17:50:10-18772
 attr configname StaticNetwork
-attr datetime 20220316-11:12:40
+attr datetime 20220316-17:50:10
 attr experiment StaticNetwork
 attr inifile omnetpp.ini
 attr iterationvars "$0=1, $1=7, $2=0"
 attr iterationvarsf 1,7,0-
 attr measurement "$0=1, $1=7, $2=0"
 attr network RAFT_Network
-attr processid 9004
+attr processid 18772
 attr repetition 0
 attr replication #0
 attr resultdir results
@@ -25,11 +25,6 @@ vector 1 RAFT_Network.server[1] serverState ETV
 vector 2 RAFT_Network.server[2] serverState ETV
 vector 3 RAFT_Network.server[3] serverState ETV
 vector 4 RAFT_Network.server[4] serverState ETV
-0	0	0	0
-1	0	0	0
-2	0	0	0
-3	0	0	0
-4	0	0	0
 vector 5 RAFT_Network.server[0] totMsgSent ETV
 vector 6 RAFT_Network.server[0] totRequestVoteMsgSent ETV
 vector 7 RAFT_Network.server[4] totMsgReceived ETV
@@ -59,6 +54,7 @@ vector 30 RAFT_Network.client[2] responseTime ETV
 vector 31 RAFT_Network.server[2] totRequestVoteMsgSent ETV
 vector 32 RAFT_Network.server[2] totAppendEntriesMsgSent ETV
 vector 33 RAFT_Network.server[0] totReplyToAppendEntriesMsgSent ETV
+0	0	0	0
 0	11	2.264876189682	0
 0	11	2.264876189682	1
 0	17	2.398184449391	1
@@ -76,6 +72,7 @@ vector 33 RAFT_Network.server[0] totReplyToAppendEntriesMsgSent ETV
 0	717	51.29529060195	1
 0	717	51.29529060195	2
 0	1433	100	2
+1	0	0	0
 1	13	2.30466991491	0
 1	13	2.30466991491	0
 1	413	30.406436652555	0
@@ -91,6 +88,7 @@ vector 33 RAFT_Network.server[0] totReplyToAppendEntriesMsgSent ETV
 1	1190	84	-1
 1	1190	84	0
 1	1433	100	0
+2	0	0	0
 2	15	2.327672727584	0
 2	15	2.327672727584	0
 2	412	30.357586331235	0
@@ -104,6 +102,7 @@ vector 33 RAFT_Network.server[0] totReplyToAppendEntriesMsgSent ETV
 2	1005	73.358087139852	0
 2	1005	73.358087139852	0
 2	1433	100	0
+3	0	0	0
 3	14	2.311037346256	0
 3	14	2.311037346256	0
 3	36	4	0
@@ -129,6 +128,7 @@ vector 33 RAFT_Network.server[0] totReplyToAppendEntriesMsgSent ETV
 3	877	64	-1
 3	877	64	0
 3	1433	100	0
+4	0	0	0
 4	12	2.304236246681	0
 4	12	2.304236246681	0
 4	417	30.523331945231	0
