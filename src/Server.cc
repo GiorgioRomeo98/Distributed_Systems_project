@@ -168,15 +168,15 @@ void Server::initialize()
     clientRequestInfoVect.resize(clients_number, ServerClientRequestInfo());
 
     // Timeouts
-    electionTimeout = normal(5.0, 1);
+    electionTimeout = par("electionTimeout");
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
-    heartbeatTimeout = 2;
+    heartbeatTimeout = par("heartbeatTimeout");
     heartbeatTimeoutEvent = new cMessage("heartbeatTimeoutEvent");
-    appendEntriesTimeout = 4.5;
+    appendEntriesTimeout = par("appendEntriesTimeout");
     appendEntriesTimeoutEvent = new cMessage("appendEntriesTimeoutEvent");
-    checkFailureTimeout = 1;
+    checkFailureTimeout = par("checkFailureTimeout");
     checkFailureTimeoutEvent = new cMessage("checkFailureTimeoutEvent");
-    checkRecoveryTimeout = 1;
+    checkRecoveryTimeout = par("checkRecoveryTimeout");
     checkRecoveryTimeoutEvent = new cMessage("checkRecoveryTimeoutEvent");
 
     // server's attributes to watch during simulation
@@ -626,8 +626,10 @@ void Server::sendReplyVoteMsg(ServerRequestVoteMsg* requestVoteMsg)
     if (candidateTerm >= currentTerm){
         // If votedFor is null or candidateId, and candidate’s log is at least as up-to-date as receiver’s log, grant vote
         if ((votedFor == -1 or votedFor == requestVoteMsg->getCandidateId()) and
-            (candidateLastLogTerm > lastLogTerm or (candidateLastLogTerm == lastLogTerm and candidateLastLogIndex >= lastLogIndex)))
+            (candidateLastLogTerm > lastLogTerm or (candidateLastLogTerm == lastLogTerm and candidateLastLogIndex >= lastLogIndex))){
             voteGranted = true;
+            votedFor = requestVoteMsg->getCandidateId();
+        }
     }
 
     replyVoteMsg->setSource(getIndex());

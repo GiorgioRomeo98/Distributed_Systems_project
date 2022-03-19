@@ -23,6 +23,11 @@ simple Server
 {
     parameters:
         @display("i=device/server");
+        double electionTimeout @unit(s);
+		double heartbeatTimeout @unit(s);
+		double appendEntriesTimeout @unit(s);
+		double checkFailureTimeout @unit(s);
+		double checkRecoveryTimeout @unit(s);
         int failureProbability = default(1);		// probability of failure (value between 0 and 100)
         int recoveryProbability = default(1);		// probability of recovery from failure (value between 0 and 100)
         int messageLossProbability = default(1);	// probability of losing a message (value between 0 and 100)
@@ -33,7 +38,8 @@ simple Server
 simple Client
 {
     parameters:
-        int addr = default(-1);		// client address	
+        int addr = default(-1);		// client address
+        double requestMsgTimeout @unit(s);
         @display("i=device/pc2");
     gates:
         inout gate;

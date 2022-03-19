@@ -64,10 +64,11 @@ void Client::initialize()
     serverLeader = -1;
 
     // Timeouts
-    requestMsgTimeout = 8;
+    requestMsgTimeout = par("requestMsgTimeout");
     requestMsgTimeoutEvent = new cMessage("requestMsgTimeoutEvent");
 
     // client's attributes to watch during simulation
+    WATCH(serverLeader);
     WATCH(currentCommand);
 
     // schedule the time when client will send its first request

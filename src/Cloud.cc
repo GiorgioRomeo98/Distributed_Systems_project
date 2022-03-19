@@ -18,7 +18,7 @@ using namespace omnetpp;
 class Cloud : public cSimpleModule
 {
   private:
-    simtime_t propDelay;
+    volatile double propDelay;
 
   protected:
     virtual void initialize() override;
