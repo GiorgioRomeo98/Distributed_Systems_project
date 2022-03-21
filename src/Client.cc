@@ -68,6 +68,7 @@ void Client::initialize()
     requestMsgTimeoutEvent = new cMessage("requestMsgTimeoutEvent");
 
     // client's attributes to watch during simulation
+    WATCH(addr);
     WATCH(serverLeader);
     WATCH(currentCommand);
 
@@ -106,7 +107,6 @@ void Client::handleRequestMsgTimeoutEvent(cMessage *timeout)
         currentRequestMsg->setDestAddr(serverAddr);
     }
 
-
     sendRequest(currentRequestMsg);
     scheduleAt(simTime()+requestMsgTimeout, requestMsgTimeoutEvent);
 }
@@ -127,6 +127,12 @@ void Client::handleServerReplyClientRequestMsg(ServerReplyClientRequestMsg *serv
         currentRequestMsg->setDestAddr(replyMostRecentLeader);
         bubble("Resending request");
     }else{
+        if (serialNumber != serverReplyClientRequestMsg->getSerialNumber()){
+            /* result already received */
+            delete serverReplyClientRequestMsg;
+            return;
+        }
+
         EV << "client_" << getIndex() << " received a result=" << serverReplyClientRequestMsg->getResult() <<  " from server_" << replyMostRecentLeader << "\n";
         /* Processing result */
         responseTimeVector.record(simTime() - currentRequestMsg->getCreationTime());

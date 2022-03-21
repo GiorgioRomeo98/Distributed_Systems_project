@@ -185,6 +185,7 @@ ServerReplyClientRequestMsg::ServerReplyClientRequestMsg(const char *name, short
     this->destAddr = 0;
     this->leaderAddr = 0;
     this->result = 0;
+    this->serialNumber = 0;
 }
 
 ServerReplyClientRequestMsg::ServerReplyClientRequestMsg(const ServerReplyClientRequestMsg& other) : ::omnetpp::cMessage(other)
@@ -210,6 +211,7 @@ void ServerReplyClientRequestMsg::copy(const ServerReplyClientRequestMsg& other)
     this->destAddr = other.destAddr;
     this->leaderAddr = other.leaderAddr;
     this->result = other.result;
+    this->serialNumber = other.serialNumber;
 }
 
 void ServerReplyClientRequestMsg::parsimPack(omnetpp::cCommBuffer *b) const
@@ -219,6 +221,7 @@ void ServerReplyClientRequestMsg::parsimPack(omnetpp::cCommBuffer *b) const
     doParsimPacking(b,this->destAddr);
     doParsimPacking(b,this->leaderAddr);
     doParsimPacking(b,this->result);
+    doParsimPacking(b,this->serialNumber);
 }
 
 void ServerReplyClientRequestMsg::parsimUnpack(omnetpp::cCommBuffer *b)
@@ -228,6 +231,7 @@ void ServerReplyClientRequestMsg::parsimUnpack(omnetpp::cCommBuffer *b)
     doParsimUnpacking(b,this->destAddr);
     doParsimUnpacking(b,this->leaderAddr);
     doParsimUnpacking(b,this->result);
+    doParsimUnpacking(b,this->serialNumber);
 }
 
 int ServerReplyClientRequestMsg::getSourceAddr() const
@@ -268,6 +272,16 @@ int ServerReplyClientRequestMsg::getResult() const
 void ServerReplyClientRequestMsg::setResult(int result)
 {
     this->result = result;
+}
+
+int ServerReplyClientRequestMsg::getSerialNumber() const
+{
+    return this->serialNumber;
+}
+
+void ServerReplyClientRequestMsg::setSerialNumber(int serialNumber)
+{
+    this->serialNumber = serialNumber;
 }
 
 class ServerReplyClientRequestMsgDescriptor : public omnetpp::cClassDescriptor
@@ -335,7 +349,7 @@ const char *ServerReplyClientRequestMsgDescriptor::getProperty(const char *prope
 int ServerReplyClientRequestMsgDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 4+basedesc->getFieldCount() : 4;
+    return basedesc ? 5+basedesc->getFieldCount() : 5;
 }
 
 unsigned int ServerReplyClientRequestMsgDescriptor::getFieldTypeFlags(int field) const
@@ -351,8 +365,9 @@ unsigned int ServerReplyClientRequestMsgDescriptor::getFieldTypeFlags(int field)
         FD_ISEDITABLE,
         FD_ISEDITABLE,
         FD_ISEDITABLE,
+        FD_ISEDITABLE,
     };
-    return (field>=0 && field<4) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<5) ? fieldTypeFlags[field] : 0;
 }
 
 const char *ServerReplyClientRequestMsgDescriptor::getFieldName(int field) const
@@ -368,8 +383,9 @@ const char *ServerReplyClientRequestMsgDescriptor::getFieldName(int field) const
         "destAddr",
         "leaderAddr",
         "result",
+        "serialNumber",
     };
-    return (field>=0 && field<4) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<5) ? fieldNames[field] : nullptr;
 }
 
 int ServerReplyClientRequestMsgDescriptor::findField(const char *fieldName) const
@@ -380,6 +396,7 @@ int ServerReplyClientRequestMsgDescriptor::findField(const char *fieldName) cons
     if (fieldName[0]=='d' && strcmp(fieldName, "destAddr")==0) return base+1;
     if (fieldName[0]=='l' && strcmp(fieldName, "leaderAddr")==0) return base+2;
     if (fieldName[0]=='r' && strcmp(fieldName, "result")==0) return base+3;
+    if (fieldName[0]=='s' && strcmp(fieldName, "serialNumber")==0) return base+4;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -396,8 +413,9 @@ const char *ServerReplyClientRequestMsgDescriptor::getFieldTypeString(int field)
         "int",
         "int",
         "int",
+        "int",
     };
-    return (field>=0 && field<4) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<5) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **ServerReplyClientRequestMsgDescriptor::getFieldPropertyNames(int field) const
@@ -468,6 +486,7 @@ std::string ServerReplyClientRequestMsgDescriptor::getFieldValueAsString(void *o
         case 1: return long2string(pp->getDestAddr());
         case 2: return long2string(pp->getLeaderAddr());
         case 3: return long2string(pp->getResult());
+        case 4: return long2string(pp->getSerialNumber());
         default: return "";
     }
 }
@@ -486,6 +505,7 @@ bool ServerReplyClientRequestMsgDescriptor::setFieldValueAsString(void *object, 
         case 1: pp->setDestAddr(string2long(value)); return true;
         case 2: pp->setLeaderAddr(string2long(value)); return true;
         case 3: pp->setResult(string2long(value)); return true;
+        case 4: pp->setSerialNumber(string2long(value)); return true;
         default: return false;
     }
 }

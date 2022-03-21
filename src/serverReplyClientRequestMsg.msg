@@ -18,4 +18,5 @@ message ServerReplyClientRequestMsg {
     int destAddr;		// address of the client that sent the request
     int leaderAddr;		// if client request is sent to a FOLLOWER server, it replies with the address of the most recent leader it knows. 
     int result;			// to simulate the result response of the leader to the client request message
+    int serialNumber;	// serial number of the request message the Leader is responding to
 }

@@ -1,0 +1,99 @@
+file 106165 1647849347                                          
+version 2
+run StaticNetwork-0-20220321-08:55:44-20828
+attr configname StaticNetwork
+attr datetime 20220321-08:55:44
+attr experiment StaticNetwork
+attr inifile omnetpp.ini
+attr iterationvars "$0=1, $1=7, $2=0"
+attr iterationvarsf 1,7,0-
+attr measurement "$0=1, $1=7, $2=0"
+attr network RAFT_Network
+attr processid 20828
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+param **.servers_number 5
+param **.clients_number 5
+param **.client[*].requestMsgTimeout "normal(7.0s, 1.5s)"
+param **.cloud.propDelay "uniform(0.1s, 0.3s)"
+param **.server[*].electionTimeout "normal(5.0s, 1s)"
+param **.server[*].heartbeatTimeout 2s
+param **.server[*].appendEntriesTimeout 4.5s
+param **.server[*].checkFailureTimeout 1s
+param **.server[*].checkRecoveryTimeout 1s
+param **.failureProbability 1
+param **.recoveryProbability 7
+param **.messageLossProbability 0
+
+vector 0 RAFT_Network.server[0] serverState ETV
+vector 1 RAFT_Network.server[1] serverState ETV
+vector 2 RAFT_Network.server[2] serverState ETV
+vector 3 RAFT_Network.server[3] serverState ETV
+vector 4 RAFT_Network.server[4] serverState ETV
+vector 5 RAFT_Network.server[0] totMsgReceived ETV
+vector 6 RAFT_Network.server[3] totMsgSent ETV
+vector 7 RAFT_Network.server[3] totRequestVoteMsgSent ETV
+vector 8 RAFT_Network.server[1] totMsgReceived ETV
+vector 9 RAFT_Network.server[1] totMsgSent ETV
+vector 10 RAFT_Network.server[1] totReplyToClientRequestMsgSent ETV
+vector 11 RAFT_Network.server[3] totMsgReceived ETV
+vector 12 RAFT_Network.server[2] totMsgReceived ETV
+vector 13 RAFT_Network.server[2] totMsgSent ETV
+vector 14 RAFT_Network.server[2] totReplyToClientRequestMsgSent ETV
+vector 15 RAFT_Network.server[4] totMsgReceived ETV
+vector 16 RAFT_Network.server[3] totAppendEntriesMsgSent ETV
+vector 17 RAFT_Network.server[1] totReplyToAppendEntriesMsgSent ETV
+vector 18 RAFT_Network.server[2] totReplyToAppendEntriesMsgSent ETV
+vector 19 RAFT_Network.server[0] totMsgSent ETV
+vector 20 RAFT_Network.server[0] totReplyToAppendEntriesMsgSent ETV
+vector 21 RAFT_Network.server[4] totMsgSent ETV
+vector 22 RAFT_Network.server[4] totReplyToAppendEntriesMsgSent ETV
+vector 23 RAFT_Network.server[3] totReplyToClientRequestMsgSent ETV
+vector 24 RAFT_Network.client[3] responseTime ETV
+vector 25 RAFT_Network.client[2] responseTime ETV
+vector 26 RAFT_Network.client[1] responseTime ETV
+vector 27 RAFT_Network.client[0] responseTime ETV
+vector 28 RAFT_Network.client[4] responseTime ETV
+vector 29 RAFT_Network.server[0] totRequestVoteMsgSent ETV
+vector 30 RAFT_Network.server[0] totAppendEntriesMsgSent ETV
+vector 31 RAFT_Network.server[3] totReplyToAppendEntriesMsgSent ETV
+vector 32 RAFT_Network.server[0] totReplyToClientRequestMsgSent ETV
+vector 33 RAFT_Network.server[4] totReplyToClientRequestMsgSent ETV
+0	2856 313 0 2971 0 200 18 -1 2 2 14
+1	3169 273 0 2971 0 200 16 -1 0 -4 4
+2	3442 223 0 2971 0 200 12 -1 0 -2 2
+3	3665 373 0 2971 0 200 20 -1 2 8 24
+4	4038 403 0 2971 0 200 26 -1 0 -10 10
+5	4441 12779 30 2953 5.718309947172 198.2583919403 459 1 459 105570 32339610
+6	17220 8061 31 2945 5.719886709309 198.128479236008 290 1 290 42195 8171765
+7	25281 200 31 2435 5.719886709309 165.895681526642 8 1 8 36 204
+8	25481 3939 32 2946 5.720907988729 198.129500515428 144 1 144 10440 1005720
+9	29420 3418 32 2946 5.720907988729 198.129500515428 125 1 125 7875 658875
+10	32838 78 32 2436 5.720907988729 165.896702806062 3 1 3 6 14
+11	32916 8450 33 2960 5.773138614144 198.546378978503 295 1 295 43660 8601020
+12	41366 3998 34 2950 5.795175922241 198.20376844894 142 1 142 10153 964535
+13	45364 3380 34 2950 5.795175922241 198.20376844894 120 1 120 7260 583220
+14	48744 78 34 2438 5.795175922241 165.970970739574 3 1 3 6 14
+15	48822 3880 35 2951 5.821931320105 198.230523846804 137 1 137 9453 866525
+16	52702 4540 38 2945 5.952684418675 198.128479236008 160 1 160 12880 1378160
+17	57242 3459 39 2946 5.953705698095 198.129500515428 122 1 122 7503 612745
+18	60701 3296 46 2950 6.027973631607 198.20376844894 117 1 117 6903 540735
+19	63997 15013 48 2953 6.082597122967 198.2583919403 519 1 519 134940 46734220
+20	79010 770 48 2953 6.082597122967 198.2583919403 29 1 29 435 8555
+21	79780 1678 79 2722 8.054729029471 184.230523846804 60 1 60 1830 73810
+22	81458 1649 79 2722 8.054729029471 184.230523846804 59 1 59 1770 70210
+23	83107 1376 112 2926 10.607540723418 197.783335540751 49 1 49 1225 40425
+24	84483 1104 120 2940 10.898957736587 198.07475255392 34 4.422058595377 26.272135055588 191.622705462 1686.3201772815
+25	85587 1137 122 2942 10.909070815164 198.084865632497 35 0.944577573065 26.272135055588 188.1203723904 1554.8004709425
+26	86724 1110 129 2949 11.016900474475 198.192695291808 34 3.734278287995 26.272135055588 191.66622789582 1695.1335683279
+27	87834 1072 195 2938 15.457857339224 198.055710751934 33 4.422058595377 26.272135055588 192.67144732983 1747.0649099028
+28	88906 1069 196 2939 15.465484872807 198.063338285517 33 4.422058595377 26.272135055588 192.52403416786 1744.1166798796
+29	89975 96 432 432 32.0296069512 32.0296069512 4 1 4 10 30
+30	90071 10576 438 2378 32.150851216882 160.150851216882 366 1 366 67161 16409671
+31	100647 2071 647 2379 48.175794817333 160.175794817333 73 1 73 2701 132349
+32	102718 3417 681 2344 50.305707521625 158.272095482564 120 1 120 7260 583220
+33	106135 28 2439 2439 165.997726137438 165.997726137438 1 1 1 1 1
+

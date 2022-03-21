@@ -120,7 +120,7 @@ class Server: public cSimpleModule
     void updateStateMachine(int oldCommitIndex, int newCommitIndex);
     ServerRequestVoteMsg *generateRequestVoteMsg();
     ServerAppendEntriesMsg *generateAppendEntriesMsg(bool isLeaderheartbeat, int destServer);
-    ServerReplyClientRequestMsg *generateServerReplyClientRequestMsg (bool isRedirection, int dest, int result=-1);
+    ServerReplyClientRequestMsg *generateServerReplyClientRequestMsg (bool isRedirection, int dest);
 };
 
 // The module class needs to be registered with OMNeT++
@@ -560,7 +560,7 @@ void Server::handleClientRequestMsg(ClientRequestMsg *clientRequestMsg)
             // if the request has been already executed then the Leader immediately sends a response
             ServerClientRequestInfo requestInfo = clientRequestInfoVect[clientAddr];
             if (requestInfo.serialNumber == clientRequestMsg->getSerialNumber()){
-                ServerReplyClientRequestMsg * replyClientRequestMsg = generateServerReplyClientRequestMsg(false, clientAddr, requestInfo.result);
+                ServerReplyClientRequestMsg * replyClientRequestMsg = generateServerReplyClientRequestMsg(false, clientAddr);
                 EV << "server_" << getIndex() << " already received this request from client_" << clientAddr << "...server_"
                    << getIndex() << " forwarding result to client_" << clientAddr << "\n";
                 send(replyClientRequestMsg, "gate$o", getIndex());
@@ -700,11 +700,12 @@ void Server::updateStateMachine(int oldCommitIndex, int newCommitIndex)
         int clientAddr = (*it).source;
         // storing the result of the command execution in order to reply immediately if Client sent again the same request
         // (as a symbolic result we insert the command value)
+        int result = commandValue;
         clientRequestInfoVect[clientAddr] = ServerClientRequestInfo((*it).serialNumber, commandValue);
         // forwarding the response of the executed command only if Server is the Leader (command executed when applied to state machine)
         if(getIndex() == currentLeader){
-            EV << "server_" << getIndex() << " forwarding result to client_" << clientAddr << "\n";
-            ServerReplyClientRequestMsg * replyMsg = generateServerReplyClientRequestMsg(false, clientAddr, commandValue);
+            EV << "server_" << getIndex() << " forwarding result=" << result << " to client_" << clientAddr << "\n";
+            ServerReplyClientRequestMsg * replyMsg = generateServerReplyClientRequestMsg(false, clientAddr);
             send(replyMsg, "gate$o", getIndex());
             totMsgSentVector.record(++totMsgSent);
             totReplyToClientRequestMsgSentVector.record(++totReplyToClientRequestMsgSent);
@@ -745,6 +746,13 @@ void Server::passToLeaderState()
     // re-initializing variables
     votedFor = -1;
     votesNumber = 0;
+    for (int i=0; i < servers_number; i++){
+        nextIndex[i] = logEntries.back().index + 1;
+        matchIndex[i] = 0;
+    }
+    matchIndex[getIndex()] = logEntries.back().index;
+
+    // delete election timeout event, schedule appendEntriesTimeout event and trigger heartbeat message sending (appendEntries(true))
     cancelEvent(electionTimeoutEvent);
     scheduleAt(simTime()+appendEntriesTimeout, appendEntriesTimeoutEvent);
     appendEntries(true);
@@ -821,7 +829,7 @@ ServerAppendEntriesMsg *Server::generateAppendEntriesMsg(bool isLeaderheartbeat,
 
 
 // isRedirection is true if the Client sent the request to the wrong server (not the leader), thus the Server should send the address of the most recent Leader
-ServerReplyClientRequestMsg * Server::generateServerReplyClientRequestMsg (bool isRedirection, int dest, int result)
+ServerReplyClientRequestMsg * Server::generateServerReplyClientRequestMsg (bool isRedirection, int dest)
 {
     char msgName[40];
     sprintf(msgName, "reply_%d", currentTerm);
@@ -829,8 +837,10 @@ ServerReplyClientRequestMsg * Server::generateServerReplyClientRequestMsg (bool 
     replyClientRequestMsg->setSourceAddr(getIndex());
     replyClientRequestMsg->setDestAddr(dest);
     replyClientRequestMsg->setLeaderAddr(currentLeader);
-    if (!isRedirection)
-        replyClientRequestMsg->setResult(result);
+    if (!isRedirection){
+        replyClientRequestMsg->setResult(clientRequestInfoVect[dest].result);
+        replyClientRequestMsg->setSerialNumber(clientRequestInfoVect[dest].serialNumber);
+    }
     return replyClientRequestMsg;
 }
 
