@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scave:Analysis xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:scave="http://www.omnetpp.org/omnetpp/scave">
+  <inputs>
+    <inputs name="/PredaRomeo_DSProject/src/results/StaticNetwork-5,5,normal(7.0s,_1.5s),uniform(0.1s,_0.3s),normal(5.0s,_1s),2s,4.5s,1s,1s,1,7,0-*.vec"/>
+    <inputs name="/PredaRomeo_DSProject/src/results/StaticNetwork-5,5,normal(7.0s,_1.5s),uniform(0.1s,_0.3s),normal(5.0s,_1s),2s,4.5s,1s,1s,1,7,0-*.sca"/>
+  </inputs>
+  <datasets/>
+  <chartSheets/>
+</scave:Analysis>

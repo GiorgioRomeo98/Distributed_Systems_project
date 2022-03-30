@@ -1,0 +1,32 @@
+version 2
+run StaticNetwork-1-20220330-11:26:45-22136
+attr configname StaticNetwork
+attr datetime 20220330-11:26:45
+attr experiment StaticNetwork
+attr inifile omnetpp.ini
+attr iterationvars "$0=5, $1=5, $2=normal(7.0s, 1.5s), $3=uniform(0.1s, 0.3s), $4=normal(5.0s, 1s), $5=2s, $6=4.5s, $7=1s, $8=1s, $9=1, $10=7, $11=0"
+attr iterationvarsf 5,5,normal(7.0s,_1.5s),uniform(0.1s,_0.3s),normal(5.0s,_1s),2s,4.5s,1s,1s,1,7,0-
+attr measurement "$0=5, $1=5, $2=normal(7.0s, 1.5s), $3=uniform(0.1s, 0.3s), $4=normal(5.0s, 1s), $5=2s, $6=4.5s, $7=1s, $8=1s, $9=1, $10=7, $11=0"
+attr network RAFT_Network
+attr processid 22136
+attr repetition 1
+attr replication #1
+attr resultdir results
+attr runnumber 1
+attr seedset 1
+param **.servers_number 5
+param **.clients_number 5
+param **.client[*].requestMsgTimeout "normal(7.0s, 1.5s)"
+param **.cloud.propDelay "uniform(0.1s, 0.3s)"
+param **.server[*].electionTimeout "normal(5.0s, 1s)"
+param **.server[*].heartbeatTimeout 2s
+param **.server[*].appendEntriesTimeout 4.5s
+param **.server[*].checkFailureTimeout 1s
+param **.server[*].checkRecoveryTimeout 1s
+param **.failureProbability 1
+param **.recoveryProbability 7
+param **.messageLossProbability 0
+
+scalar RAFT_Network.server[0] totalNumberLeaderElections 7
+scalar RAFT_Network.server[0] meanTimeLeaderElections 3.3386717938389
+

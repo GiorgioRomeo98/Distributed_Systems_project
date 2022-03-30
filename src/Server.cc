@@ -81,6 +81,7 @@ class Server: public cSimpleModule
     cOutVector totReplyToClientRequestMsgSentVector;
     cOutVector totReplyToRequestVoteMsgSentVector;
     cOutVector totReplyToAppendEntriesMsgSentVector;
+    cStdDev electionsInfo; // used to monitor how many Leader elections happen and the mean time to elect a new Leader
     int totMsgSent;
     int totMsgReceived;
     int totRequestVoteMsgSent;
@@ -88,6 +89,17 @@ class Server: public cSimpleModule
     int totReplyToClientRequestMsgSent;
     int totReplyToRequestVoteMsgSent;
     int totReplyToAppendEntriesMsgSent;
+
+    /*
+     * This variable is used to store the time in which a new election phase began (value initialized to -1 after each new Leader election)
+     * Note that only a value different from -1 is possible at each time between all servers (idea: for each new election store just
+     * the first election phase time (e.g., if Leader fails at 2, the new election phase is started at 4 by server 2, then only
+     * newElectionPhase of server 2 is set to 4 while all the others are -1, if this election phase fails and another begins at time 8
+     * by server 3, there will be no updates since we want to monitor the time elapsed between the FIRST election phase time and the actual
+     * Leader election)
+     */
+    simtime_t newElectionPhaseTime = -1;
+
 
   public:
     Server();
@@ -118,6 +130,7 @@ class Server: public cSimpleModule
     void passToFailedState();
     void updateCommitIndex();
     void updateStateMachine(int oldCommitIndex, int newCommitIndex);
+    void collectLeaderElectionsInfo();
     ServerRequestVoteMsg *generateRequestVoteMsg();
     ServerAppendEntriesMsg *generateAppendEntriesMsg(bool isLeaderheartbeat, int destServer);
     ServerReplyClientRequestMsg *generateServerReplyClientRequestMsg (bool isRedirection, int dest);
@@ -267,6 +280,11 @@ void Server::handleMessage(cMessage *msg)
 void Server::finish()
 {
     stateVector.record(state);
+    // the information about the elections is the same for all the servers, hence we save it just for 1 server (server[0])
+    if (getIndex() == 0){
+        recordScalar("totalNumberLeaderElections", electionsInfo.getCount());
+        recordScalar("meanTimeLeaderElections", electionsInfo.getMean());
+    }
 }
 
 
@@ -310,6 +328,17 @@ void Server::handleElectionTimeoutEvent()
     votesNumber++;
     scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
     sendRequestVoteMsg();
+
+    // update newElectionPhaseTime
+    bool alreadyUpdated = false;    // if newElectionPhaseTime is already different from -1 for a server, we skip the update
+    for (int i = 0; i < servers_number and !alreadyUpdated; i++){
+        std::string serverPath = "server[" + std::to_string(i) + "]";
+        Server *server = (Server *)(getParentModule()->getModuleByPath(serverPath.c_str()));
+        if (server->newElectionPhaseTime != -1)
+            alreadyUpdated = true;
+    }
+    if (!alreadyUpdated)
+        newElectionPhaseTime = simTime();
 }
 
 
@@ -738,6 +767,7 @@ void Server::passToLeaderState()
     stateVector.record(state);
     state = LEADER;
     stateVector.record(state);
+    collectLeaderElectionsInfo();
     currentLeader = getIndex();
     bubble("Now I am the leader!");
     EV << "server_" << getIndex() << " is the new leader after obtaining " << votesNumber << " votes\n";
@@ -774,6 +804,24 @@ void Server::passToFailedState()
     cancelEvent(heartbeatTimeoutEvent);
     cancelEvent(appendEntriesTimeoutEvent);
     scheduleAt(simTime()+checkRecoveryTimeout, checkRecoveryTimeoutEvent);
+}
+
+
+/*
+ * This method is used to collect information about Leader elections (total number and mean time)
+ */
+
+void Server::collectLeaderElectionsInfo()
+{
+    for (int i = 0; i < servers_number; i++){
+        std::string serverPath = "server[" + std::to_string(i) + "]";
+        Server *server = (Server *)(getParentModule()->getModuleByPath(serverPath.c_str()));
+        if (server->newElectionPhaseTime != -1){
+            Server *server_0 = (Server *)(getParentModule()->getModuleByPath("server[0]"));
+            server_0->electionsInfo.collect(simTime() - server->newElectionPhaseTime);
+            server->newElectionPhaseTime = -1;
+        }
+    }
 }
 
 
