@@ -81,7 +81,7 @@ class Server: public cSimpleModule
     cOutVector totReplyToClientRequestMsgSentVector;
     cOutVector totReplyToRequestVoteMsgSentVector;
     cOutVector totReplyToAppendEntriesMsgSentVector;
-    cStdDev electionsInfo; // used to monitor how many Leader elections happen and the mean time to elect a new Leader
+    cOutVector electionsMeanTimeVector;     // monitor how many Leader elections happen and the mean time to elect a new Leader
     int totMsgSent;
     int totMsgReceived;
     int totRequestVoteMsgSent;
@@ -214,6 +214,7 @@ void Server::initialize()
     totReplyToClientRequestMsgSentVector.setName("totReplyToClientRequestMsgSent");
     totReplyToRequestVoteMsgSentVector.setName("totReplyToRequestVoteMsgSent");
     totReplyToAppendEntriesMsgSentVector.setName("totReplyToAppendEntriesMsgSent");
+    electionsMeanTimeVector.setName("electionsMeanTime");
 
     // set initial statistics variables
     totMsgSent = 0;
@@ -280,11 +281,6 @@ void Server::handleMessage(cMessage *msg)
 void Server::finish()
 {
     stateVector.record(state);
-    // the information about the elections is the same for all the servers, hence we save it just for 1 server (server[0])
-    if (getIndex() == 0){
-        recordScalar("totalNumberLeaderElections", electionsInfo.getCount());
-        recordScalar("meanTimeLeaderElections", electionsInfo.getMean());
-    }
 }
 
 
@@ -325,7 +321,7 @@ void Server::handleElectionTimeoutEvent()
     state = CANDIDATE;
     stateVector.record(state);
     votedFor = getIndex();
-    votesNumber++;
+    votesNumber = 1;
     scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
     sendRequestVoteMsg();
 
@@ -818,7 +814,7 @@ void Server::collectLeaderElectionsInfo()
         Server *server = (Server *)(getParentModule()->getModuleByPath(serverPath.c_str()));
         if (server->newElectionPhaseTime != -1){
             Server *server_0 = (Server *)(getParentModule()->getModuleByPath("server[0]"));
-            server_0->electionsInfo.collect(simTime() - server->newElectionPhaseTime);
+            server_0->electionsMeanTimeVector.record(simTime() - server->newElectionPhaseTime);
             server->newElectionPhaseTime = -1;
         }
     }
