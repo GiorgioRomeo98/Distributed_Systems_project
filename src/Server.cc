@@ -393,18 +393,18 @@ void Server::appendEntries(bool isLeaderheartbeat)
         handleLeaderheartbeatTimeoutEvent();
     else{
         for (int i = 0; i < servers_number; i++)
-                if (i != getIndex() and logEntries.size()-1 >= nextIndex[i]){
-                    ServerAppendEntriesMsg *msg = generateAppendEntriesMsg(false, i);
-                    EV << "Server_" << getIndex() << " forwarding message " << msg << " towards server_" << i << "\n";
-                    // deleting a previously stored appendEntries message
-                    delete appendEntriesVect[i];
-                    // storing the message and sending a copy
-                    appendEntriesVect[i] = msg;
-                    send((ServerAppendEntriesMsg *)msg->dup(), "gate$o", i);
-                    totMsgSentVector.record(++totMsgSent);
-                    totAppendEntriesMsgSentVector.record(++totAppendEntriesMsgSent);
-                }
-        scheduleAt(simTime()+appendEntriesTimeout, appendEntriesTimeoutEvent);
+            if (i != getIndex() and logEntries.size()-1 >= nextIndex[i]){
+                ServerAppendEntriesMsg *msg = generateAppendEntriesMsg(false, i);
+                EV << "Server_" << getIndex() << " forwarding message " << msg << " towards server_" << i << "\n";
+                // deleting the previously stored appendEntries message for server i
+                delete appendEntriesVect[i];
+                // storing the message and sending a copy
+                appendEntriesVect[i] = msg;
+                send((ServerAppendEntriesMsg *)msg->dup(), "gate$o", i);
+                totMsgSentVector.record(++totMsgSent);
+                totAppendEntriesMsgSentVector.record(++totAppendEntriesMsgSent);
+            }
+            scheduleAt(simTime()+appendEntriesTimeout, appendEntriesTimeoutEvent);
     }
 }
 
@@ -430,6 +430,8 @@ void Server::handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 void Server::processHeartbeatMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
     EV << "Server_" << getIndex() << " received heartbeat message " << appendEntriesMsg << " from server_" << appendEntriesMsg->getLeaderId() << "\n";
+    if (appendEntriesMsg->getTerm() >= currentTerm)
+        passToFollowerState(appendEntriesMsg->getTerm());
 
     bool success = true;
     if (appendEntriesMsg->getTerm() < currentTerm)
@@ -467,6 +469,8 @@ void Server::processHeartbeatMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 void Server::processAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
     EV << "Server_" << getIndex() << " received appendEntries message " << appendEntriesMsg << " from server_" << appendEntriesMsg->getLeaderId() << "\n";
+    if (appendEntriesMsg->getTerm() >= currentTerm)
+        passToFollowerState(appendEntriesMsg->getTerm());
 
     std::list<_logEntry> newLogEntries = appendEntriesMsg->getEntries();
     std::list<LogEntry>::iterator it = logEntries.begin();
@@ -557,8 +561,19 @@ void Server::handleReplyAppendEntriesMsg(ServerReplyAppendEntriesMsg *replyAppen
     }else{
         if (replyAppendEntriesMsg->getTerm() > currentTerm)
             passToFollowerState(replyAppendEntriesMsg->getTerm());
-        else
+        else{
+            EV << "Server_" << sourceAddr << "has log entries inconsistencies w.r.t "<< "leader Server_" << getIndex() << " log entries\n";
             nextIndex[sourceAddr]--;
+            ServerAppendEntriesMsg *msg = generateAppendEntriesMsg(false, sourceAddr);
+            EV << "Server_" << getIndex() << " forwarding message " << msg << " towards server_" << sourceAddr << "\n";
+            // deleting the previously stored appendEntries message for server sourceAddr
+            delete appendEntriesVect[sourceAddr];
+            // storing the message and sending a copy
+            appendEntriesVect[sourceAddr] = msg;
+            send((ServerAppendEntriesMsg *)msg->dup(), "gate$o", sourceAddr);
+            totMsgSentVector.record(++totMsgSent);
+            totAppendEntriesMsgSentVector.record(++totAppendEntriesMsgSent);
+        }
     }
 
     delete replyAppendEntriesMsg;
@@ -780,6 +795,8 @@ void Server::passToLeaderState()
 
     // delete election timeout event, schedule appendEntriesTimeout event and trigger heartbeat message sending (appendEntries(true))
     cancelEvent(electionTimeoutEvent);
+    cancelEvent(heartbeatTimeoutEvent);
+    cancelEvent(appendEntriesTimeoutEvent);
     scheduleAt(simTime()+appendEntriesTimeout, appendEntriesTimeoutEvent);
     appendEntries(true);
 }

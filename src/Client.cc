@@ -71,6 +71,7 @@ void Client::initialize()
     WATCH(addr);
     WATCH(serverLeader);
     WATCH(currentCommand);
+    WATCH(serialNumber);
 
     // schedule the time when client will send its first request
     scheduleAt(simTime()+requestMsgTimeout, requestMsgTimeoutEvent);
