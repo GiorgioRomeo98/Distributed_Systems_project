@@ -393,7 +393,7 @@ void Server::appendEntries(bool isLeaderheartbeat)
         handleLeaderheartbeatTimeoutEvent();
     else{
         for (int i = 0; i < servers_number; i++)
-            if (i != getIndex() and logEntries.size()-1 >= nextIndex[i]){
+            if (i != getIndex() /*and logEntries.size()-1 >= nextIndex[i]*/){
                 ServerAppendEntriesMsg *msg = generateAppendEntriesMsg(false, i);
                 EV << "Server_" << getIndex() << " forwarding message " << msg << " towards server_" << i << "\n";
                 // deleting the previously stored appendEntries message for server i
@@ -413,7 +413,11 @@ void Server::appendEntries(bool isLeaderheartbeat)
 void Server::handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
     totMsgReceivedVector.record(++totMsgReceived);
-    currentLeader = appendEntriesMsg->getLeaderId();
+    if (appendEntriesMsg->getTerm() >= currentTerm){
+        currentLeader = appendEntriesMsg->getLeaderId();
+        passToFollowerState(appendEntriesMsg->getTerm());
+    }
+
     // check if it is a leader heartbeat message (log entries should be empty)
     if (appendEntriesMsg->getEntries().empty())
         processHeartbeatMsg(appendEntriesMsg);
@@ -430,8 +434,6 @@ void Server::handleAppendEntriesMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 void Server::processHeartbeatMsg(ServerAppendEntriesMsg *appendEntriesMsg)
 {
     EV << "Server_" << getIndex() << " received heartbeat message " << appendEntriesMsg << " from server_" << appendEntriesMsg->getLeaderId() << "\n";
-    if (appendEntriesMsg->getTerm() >= currentTerm)
-        passToFollowerState(appendEntriesMsg->getTerm());
 
     bool success = true;
     if (appendEntriesMsg->getTerm() < currentTerm)
@@ -562,7 +564,7 @@ void Server::handleReplyAppendEntriesMsg(ServerReplyAppendEntriesMsg *replyAppen
         if (replyAppendEntriesMsg->getTerm() > currentTerm)
             passToFollowerState(replyAppendEntriesMsg->getTerm());
         else{
-            EV << "Server_" << sourceAddr << "has log entries inconsistencies w.r.t "<< "leader Server_" << getIndex() << " log entries\n";
+            EV << "Server_" << sourceAddr << " has log entries inconsistencies w.r.t "<< "leader Server_" << getIndex() << " log entries\n";
             nextIndex[sourceAddr]--;
             ServerAppendEntriesMsg *msg = generateAppendEntriesMsg(false, sourceAddr);
             EV << "Server_" << getIndex() << " forwarding message " << msg << " towards server_" << sourceAddr << "\n";
@@ -704,8 +706,11 @@ void Server::updateCommitIndex()
         if (commitIndex < matchIndex[i]){
             it = logEntries.begin();
             advance(it, matchIndex[i]);
-            if ((*it).term < currentTerm)
-                continue;
+            /* this check would we possible if we had a dynamic number of client. Indeed, being the number of client static, there would
+             * be an high probability that the leader does not receive a new command (one that is not already stored), thus commitIndex
+             * would be never updated
+             * if ((*it).term < currentTerm)
+                continue;*/
             replications++;
             for (int j=0; j < servers_number; j++)
                 if (j != i and matchIndex[j] >= matchIndex[i])
@@ -762,12 +767,14 @@ void Server::passToFollowerState(int updatedTerm)
         stateVector.record(state);
         state = FOLLOWER;
         stateVector.record(state);
+        votedFor = -1;
     }
     currentTerm = updatedTerm;
-    votedFor = -1;
     votesNumber = 0;
 
     cancelEvent(electionTimeoutEvent);
+    cancelEvent(heartbeatTimeoutEvent);
+    cancelEvent(appendEntriesTimeoutEvent);
     scheduleAt(simTime()+electionTimeout, electionTimeoutEvent);
 }
 
@@ -788,7 +795,9 @@ void Server::passToLeaderState()
     votedFor = -1;
     votesNumber = 0;
     for (int i=0; i < servers_number; i++){
-        nextIndex[i] = logEntries.back().index + 1;
+        // nextIndex[i] should be initialized to logEntries.size()+1 according to the paper
+        // (it may cause a bug if leader receives new entries, fails, becomes again leader)
+        nextIndex[i] = commitIndex + 1;
         matchIndex[i] = 0;
     }
     matchIndex[getIndex()] = logEntries.back().index;

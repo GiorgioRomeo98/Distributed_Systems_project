@@ -1,15 +1,15 @@
-file 1210595 1648797245                                         
+file 1210595 1648837507                                         
 version 2
-run StaticNetwork-0-20220401-09:14:02-20844
+run StaticNetwork-0-20220401-20:25:05-18812
 attr configname StaticNetwork
-attr datetime 20220401-09:14:02
+attr datetime 20220401-20:25:05
 attr experiment StaticNetwork
 attr inifile omnetpp.ini
 attr iterationvars "$0=3, $1=5, $2=normal(7.0s, 1.5s), $3=uniform(0.1s, 0.3s), $4=normal(5.0s, 1s), $5=2s, $6=4.5s, $7=5s, $8=1s, $9=1, $10=7, $11=0"
 attr iterationvarsf 3,5,normal(7.0s,_1.5s),uniform(0.1s,_0.3s),normal(5.0s,_1s),2s,4.5s,5s,1s,1,7,0-
 attr measurement "$0=3, $1=5, $2=normal(7.0s, 1.5s), $3=uniform(0.1s, 0.3s), $4=normal(5.0s, 1s), $5=2s, $6=4.5s, $7=5s, $8=1s, $9=1, $10=7, $11=0"
 attr network RAFT_Network
-attr processid 20844
+attr processid 18812
 attr repetition 0
 attr replication #0
 attr resultdir results
