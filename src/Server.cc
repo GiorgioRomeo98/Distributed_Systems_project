@@ -64,12 +64,12 @@ class Server: public cSimpleModule
     // Volatile state on each server
     int commitIndex = 0; //index of highest log entry known to be committed (initialized to 0, increases monotonically)
     int lastApplied = 0; //index of highest log entry applied to state machine (initialized to 0, increases monotonically)
-    std::vector<ServerAppendEntriesMsg *> appendEntriesVect;        // for each server, current appendEntries message sent by the Leader
     std::vector<ServerClientRequestInfo> clientRequestInfoVect;     // for each server, info about the most recent executed client request
 
     // Volatile state on leader (reinitialized after election)
     std::vector<int> nextIndex;     // for each server, index of the next log entry to send to that server (initialized to leader last log index + 1)
     std::vector<int> matchIndex;    // for each server, index of highest log entry known to be replicated on server (initialized to 0, increases monotonically)
+    std::vector<ServerAppendEntriesMsg *> appendEntriesVect;        // for each server, current appendEntries message sent by the Leader
 
 
     // statistics to monitor and associated vector
